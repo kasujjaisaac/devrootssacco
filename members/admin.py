@@ -28,7 +28,7 @@ class MemberAdmin(admin.ModelAdmin):
     fieldsets = (
         ('Member Info', {'fields': ('member_id', 'status'), 'classes': ('collapse',)}),
         ('Personal Info', {
-            'fields': ('first_name', 'last_name', 'gender', 'date_of_birth', 'marital_status', 'nationality', 'district_of_birth', 'tribe'),
+            'fields': ('first_name', 'last_name', 'gender', 'date_of_birth', 'marital_status', 'nationality', 'district_of_birth', 'tribe','profile_pic', 'national_id_copy'),
             'classes': ('collapse',)
         }),
         ('Contact Info', {'fields': ('phone', 'email', 'address', 'preferred_contact'), 'classes': ('collapse',)}),

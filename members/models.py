@@ -6,6 +6,7 @@ from django.dispatch import receiver
 import uuid
 import random
 import string
+import os
 
 # -------------------- MEMBER MODEL --------------------
 class Member(models.Model):
@@ -45,6 +46,23 @@ class Member(models.Model):
         ('600,000–1,000,000', '600,000–1,000,000'),
         ('Above 1,000,000', 'Above 1,000,000'),
     ]
+
+    # PROFILE PIC
+    profile_pic = models.ImageField(
+        upload_to="profile_pics/",
+        default="default-avatar.png",
+        null=True,
+        blank=True
+    )
+
+    # NATIONAL ID COPY
+    national_id_copy = models.FileField(
+        upload_to='national_ids/',
+        blank=True,
+        null=True,
+        help_text='Upload National ID copy (PDF, PNG, JPG, JPEG).'
+    )
+
 
     # Auto-generated Member ID
     member_id = models.CharField(max_length=20, unique=True, blank=True)
@@ -152,6 +170,16 @@ class SavingTransaction(models.Model):
 
     def __str__(self):
         return f"{self.transaction_type} - {self.amount} on {self.transaction_date.strftime('%Y-%m-%d')}"
+
+# -------------------- USER ACTIVITY LOG --------------------
+class UserActivityLog(models.Model):
+    member = models.ForeignKey(Member, on_delete=models.CASCADE, related_name='activity_logs')
+    action = models.CharField(max_length=255)
+    timestamp = models.DateTimeField(auto_now_add=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.member} - {self.action} at {self.timestamp}"
 
 # -------------------- SIGNALS --------------------
 # Automatically create SavingAccount and Django User with temporary password when a new Member is created
