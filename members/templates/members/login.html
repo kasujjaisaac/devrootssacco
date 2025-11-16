@@ -2,131 +2,321 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Member Login</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>DevRoots SACCO – Member Login</title>
 
-    <!-- BOOTSTRAP -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Google Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
 
-    <style>
-        body {
-            background: linear-gradient(135deg, #0d1b2a, #1b263b, #415a77);
-            height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-family: "Poppins", sans-serif;
-        }
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: "Poppins", sans-serif;
+    }
 
-        .login-card {
-            background: rgba(255, 255, 255, 0.15);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border-radius: 15px;
-            padding: 40px;
-            width: 420px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-            animation: fadeIn 0.8s ease-in-out;
-        }
+    body {
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: linear-gradient(to bottom right, #0f9d58, #00c853, #a7ffeb);
+      background-size: 200% 200%;
+      animation: gradientMove 8s infinite alternate ease-in-out;
+      padding: 20px;
+    }
 
-        .login-logo {
-            font-size: 32px;
-            font-weight: 800;
-            color: #ffffff;
-            text-align: center;
-            margin-bottom: 20px;
-            letter-spacing: 1px;
-        }
+    @keyframes gradientMove {
+      from { background-position: left top; }
+      to { background-position: right bottom; }
+    }
 
-        .login-title {
-            text-align: center;
-            font-size: 20px;
-            font-weight: 600;
-            color: #e0e6ed;
-            margin-bottom: 25px;
-        }
+    .container {
+      display: flex;
+      max-width: 980px;
+      width: 100%;
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 12px 32px rgba(0,0,0,0.25);
+      backdrop-filter: blur(8px);
+      background: rgba(255,255,255,0.15);
+    }
 
-        label {
-            color: #e0e6ed;
-            font-size: 14px;
-        }
+    /* LEFT PANEL */
+    .left-panel {
+      flex: 1;
+      padding: 60px 50px;
+      color: white;
+      background: rgba(0,0,0,0.25);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
 
-        .form-control {
-            background: rgba(255, 255, 255, 0.1);
-            border: none;
-            color: white;
-            height: 48px;
-        }
+    .left-panel::after {
+      content: "";
+      position: absolute;
+      width: 320px;
+      height: 320px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 50%;
+      bottom: -40px;
+      right: -60px;
+      filter: blur(35px);
+    }
 
-        .form-control:focus {
-            background: rgba(255, 255, 255, 0.2);
-            box-shadow: none;
-            color: white;
-        }
+    .left-logo {
+      width: 150px;
+      height: auto;
+      margin-bottom: 25px;
+      filter: drop-shadow(0 6px 12px rgba(0,0,0,0.4));
+      transition: transform .3s ease;
+    }
 
-        .btn-login {
-            background: #00b4d8;
-            color: white;
-            height: 48px;
-            font-size: 16px;
-            border-radius: 10px;
-            transition: .3s;
-        }
+    .left-logo:hover {
+      transform: scale(1.08);
+    }
 
-        .btn-login:hover {
-            background: #0096c7;
-        }
+    .left-panel h1 {
+      font-size: 2.3rem;
+      font-weight: 700;
+      margin-bottom: 10px;
+      letter-spacing: 1px;
+    }
 
-        .error-box {
-            background: rgba(255, 80, 80, 0.2);
-            border-left: 4px solid #ff4d4d;
-            padding: 10px;
-            color: #ffcccc;
-            margin-bottom: 15px;
-            border-radius: 6px;
-        }
+    .left-panel h3 {
+      font-weight: 500;
+      margin-bottom: 20px;
+      opacity: 0.9;
+    }
 
-        @keyframes fadeIn {
-            from {opacity: 0; transform: translateY(20px);}
-            to {opacity: 1; transform: translateY(0);}
-        }
-    </style>
+    .left-panel p {
+      max-width: 320px;
+      opacity: 0.85;
+      margin-bottom: 25px;
+      line-height: 1.5;
+    }
 
+    .left-btn {
+      padding: 12px 32px;
+      border-radius: 30px;
+      background: white;
+      color: #0d5625;
+      border: none;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: .3s;
+      box-shadow: 0 5px 12px rgba(255,255,255,0.4);
+    }
+
+    .left-btn:hover {
+      background: #000;
+      color: white;
+      transform: translateY(-2px);
+    }
+
+    /* RIGHT PANEL */
+    .right-panel {
+      flex: 1;
+      padding: 55px 45px;
+      background: rgba(255,255,255,0.85);
+      backdrop-filter: blur(12px);
+      border-left: 2px solid rgba(255,255,255,0.4);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .right-panel h2 {
+      font-size: 1.9rem;
+      color: #0f6d2f;
+      font-weight: 700;
+      margin-bottom: 5px;
+    }
+
+    .right-panel p {
+      font-size: 0.9rem;
+      opacity: 0.7;
+      margin-bottom: 25px;
+    }
+
+    /* ERROR BOX */
+    .error-box {
+      background: rgba(255,0,0,0.2);
+      border-left: 4px solid red;
+      color: #7a0000;
+      padding: 10px;
+      border-radius: 6px;
+      margin-bottom: 20px;
+    }
+
+    /* input fields */
+    label {
+      font-weight: 600;
+      font-size: 0.85rem;
+      margin-bottom: 6px;
+    }
+
+    input {
+      width: 100%;
+      padding: 14px 16px;
+      font-size: 1rem;
+      background: rgba(255,255,255,0.85);
+      border: 1.5px solid rgba(0,0,0,0.15);
+      border-radius: 10px;
+      outline: none;
+      margin-bottom: 20px;
+      transition: .3s;
+    }
+
+    input:focus {
+      border-color: #0f6d2f;
+      box-shadow: 0 0 8px rgba(0,140,40,0.4);
+    }
+
+    .password-container {
+      position: relative;
+    }
+
+    .show-btn {
+      position: absolute;
+      right: 15px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+      opacity: 0.5;
+    }
+
+    .show-btn:hover {
+      opacity: 1;
+    }
+
+    /* Buttons row */
+    .button-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 15px;
+      margin-top: 10px;
+    }
+
+    /* Primary Sign In button */
+    .sign-in-btn {
+      flex: 1;
+      background: #0f6d2f;
+      color: white;
+      padding: 14px 0;
+      border: none;
+      font-weight: 700;
+      font-size: 1.05rem;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 6px 16px rgba(0,128,0,0.35);
+    }
+
+    .sign-in-btn:hover {
+      background: #093a1d;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(0,100,0,0.45);
+    }
+
+    /* Secondary Forgot Password button */
+    .forgot-password-btn {
+      flex: 1;
+      text-align: center;
+      padding: 14px 0;
+      border-radius: 12px;
+      border: 2px solid #0f6d2f;
+      background: white;
+      color: #0f6d2f;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.3s ease;
+    }
+
+    .forgot-password-btn:hover {
+      background: #0f6d2f;
+      color: white;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 15px rgba(0,128,0,0.35);
+    }
+
+  </style>
 </head>
 <body>
 
-<div class="login-card">
+  <div class="container">
 
-    <div class="login-logo">
-        DevRoots SACCO
+    <!-- LEFT PANEL -->
+    <div class="left-panel">
+
+      <img src="{% static 'img/logo.png' %}" class="left-logo" alt="Logo">
+
+      <h1>DEVROOTS SACCO</h1>
+      <h3>MEMBER LOGIN PORTAL</h3>
+
+      <p>
+        Not yet a member?<br>
+        Click below to learn how to join DevRoots SACCO.
+      </p>
+
+      <button class="left-btn">Learn More</button>
     </div>
 
-    <div class="login-title">Member Login Portal</div>
+    <!-- RIGHT PANEL -->
+    <div class="right-panel">
+      
+      <h2>Sign In</h2>
+      <p>Enter your username and password to access your account.</p>
 
-    {% if error %}
-    <div class="error-box">
-        {{ error }}
-    </div>
-    {% endif %}
+      {% if error %}
+      <div class="error-box">{{ error }}</div>
+      {% endif %}
 
-    <form method="POST">
+      <form method="POST">
         {% csrf_token %}
 
-        <div class="mb-3">
-            <label>Username</label>
-            <input type="text" name="username" class="form-control" required placeholder="Enter username">
+        <label>Username</label>
+        <input type="text" name="username" placeholder="Enter username" required />
+
+        <label>Password</label>
+        <div class="password-container">
+          <input type="password" name="password" id="password" placeholder="Enter password" required />
+          <button type="button" class="show-btn" onclick="togglePassword()">Show</button>
         </div>
 
-        <div class="mb-3">
-            <label>Password</label>
-            <input type="password" name="password" class="form-control" required placeholder="Enter password">
+        <div class="button-row">
+          <button class="sign-in-btn" type="submit">Sign In</button>
+          <a href="#" class="forgot-password-btn">Forgot Password?</a>
         </div>
+      </form>
 
-        <button class="btn btn-login w-100 mt-2">Login</button>
-    </form>
+    </div>
+  </div>
 
-</div>
+<script>
+  function togglePassword() {
+    const input = document.getElementById("password");
+    const btn = document.querySelector(".show-btn");
+    if (input.type === "password") {
+      input.type = "text";
+      btn.innerText = "Hide";
+    } else {
+      input.type = "password";
+      btn.innerText = "Show";
+    }
+  }
+</script>
 
 </body>
 </html>
