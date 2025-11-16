@@ -1,0 +1,228 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Member Dashboard{% endblock %}
+
+{% block content %}
+
+<div class="dashboard-container d-flex">
+
+    <!-- =======================
+        SIDEBAR
+    ======================== -->
+    <div class="sidebar bg-dark text-white p-3">
+        <div class="text-center mb-4">
+            <img src="{% static 'img/devroots_logo.png' %}" 
+                 alt="Logo" class="img-fluid mb-2" style="width:80px;">
+            <h5 class="fw-bold">Member Portal</h5>
+        </div>
+
+        <ul class="nav flex-column">
+
+            <!-- Dashboard -->
+            <li class="nav-item mb-2">
+                <a class="nav-link text-white" href="#">
+                    <i class="bi bi-speedometer2"></i> Dashboard
+                </a>
+            </li>
+
+            <!-- Profile -->
+            <li class="nav-item mb-2">
+                <a class="nav-link text-white" href="#">
+                    <i class="bi bi-person"></i> My Profile
+                </a>
+            </li>
+
+            <!-- Account -->
+            <li class="nav-item mb-2">
+                <a class="nav-link text-white" href="#">
+                    <i class="bi bi-wallet2"></i> Savings Account
+                </a>
+            </li>
+
+            <!-- Transactions -->
+            <li class="nav-item mb-2">
+                <a class="nav-link text-white" href="#">
+                    <i class="bi bi-cash"></i> Transactions
+                </a>
+            </li>
+
+            <!-- Logout -->
+            <li class="nav-item mt-3">
+                <a class="btn btn-danger w-100" href="{% url 'member_logout' %}">
+                    Logout
+                </a>
+            </li>
+        </ul>
+    </div>
+
+
+
+    <!-- =======================
+        MAIN CONTENT
+    ======================== -->
+    <div class="main-content p-4 w-100">
+
+        <!-- WELCOME -->
+        <h2 class="mb-4 fw-bold">Welcome, {{ member.first_name }} {{ member.last_name }}</h2>
+
+
+
+        <!-- =======================
+            TOP STAT CARDS
+        ======================== -->
+        <div class="row mb-4">
+
+            <!-- Balance -->
+            <div class="col-md-4 mb-3">
+                <div class="card shadow-sm stat-card border-0">
+                    <div class="card-body">
+                        <h6 class="text-muted">Account Balance</h6>
+                        <h3 class="fw-bold">UGX {{ account.balance|floatformat:2 }}</h3>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Transaction count -->
+            <div class="col-md-4 mb-3">
+                <div class="card shadow-sm stat-card border-0">
+                    <div class="card-body">
+                        <h6 class="text-muted">Total Transactions</h6>
+                        <h3 class="fw-bold">{{ transactions|length }}</h3>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Status -->
+            <div class="col-md-4 mb-3">
+                <div class="card shadow-sm stat-card border-0">
+                    <div class="card-body">
+                        <h6 class="text-muted">Status</h6>
+                        <h3 class="fw-bold">{{ member.status }}</h3>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+
+
+        <!-- =======================
+            PROFILE & ACCOUNT SECTION
+        ======================== -->
+        <div class="row">
+
+            <!-- Profile section -->
+            <div class="col-md-6 mb-4">
+                <div class="card shadow-sm rounded-3">
+                    <div class="card-header bg-primary text-white">Member Profile</div>
+                    <div class="card-body">
+                        <p><strong>Member ID:</strong> {{ member.member_id }}</p>
+                        <p><strong>Phone:</strong> {{ member.phone }}</p>
+                        <p><strong>Email:</strong> {{ member.email }}</p>
+                        <p><strong>Marital Status:</strong> {{ member.marital_status }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Savings account -->
+            <div class="col-md-6 mb-4">
+                <div class="card shadow-sm rounded-3">
+                    <div class="card-header bg-success text-white">Savings Account</div>
+                    <div class="card-body">
+                        <p><strong>Balance:</strong> UGX {{ account.balance|floatformat:2 }}</p>
+                        <p><strong>Account Created:</strong> {{ account.account_created|date:"d M Y" }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+
+        <!-- =======================
+            TRANSACTIONS TABLE
+        ======================== -->
+        <div class="card shadow-sm mb-5 rounded-3">
+            <div class="card-header bg-info text-white">Recent Transactions</div>
+            <div class="card-body">
+
+                {% if transactions %}
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Date</th>
+                                <th>Type</th>
+                                <th>Amount</th>
+                                <th>Balance After</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            {% for tx in transactions %}
+                                <tr>
+                                    <td>{{ tx.transaction_date|date:"d M Y H:i" }}</td>
+                                    <td>{{ tx.transaction_type }}</td>
+                                    <td>UGX {{ tx.amount|floatformat:2 }}</td>
+                                    <td>UGX {{ tx.balance_after_transaction|floatformat:2 }}</td>
+                                    <td>{{ tx.description|default:"-" }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+
+                    </table>
+                </div>
+
+                {% else %}
+                    <p class="text-muted">No transactions found.</p>
+                {% endif %}
+
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+
+
+<!-- =======================
+    CUSTOM CSS
+======================= -->
+<style>
+
+    .dashboard-container {
+        min-height: 100vh;
+    }
+
+    .sidebar {
+        width: 240px;
+        min-height: 100vh;
+        position: fixed;
+        left: 0;
+        top: 0;
+    }
+
+    .main-content {
+        margin-left: 250px;
+    }
+
+    .stat-card {
+        border-left: 5px solid #0d6efd;
+        border-radius: 6px;
+    }
+
+    .nav-link:hover {
+        background: rgba(255, 255, 255, 0.17);
+        border-radius: 5px;
+        transition: 0.3s;
+    }
+
+    .table th, .table td {
+        vertical-align: middle;
+    }
+
+</style>
+
+{% endblock %}
