@@ -73,8 +73,6 @@
                     <div class="card-body text-center">
                         <h6 class="text-muted">Account Balance</h6>
                         <h3 class="fw-bold">{{ account.balance|floatformat:2 }}</h3>
-                        
-                        
                     </div>
                 </div>
             </div>
@@ -112,7 +110,6 @@
                     <div class="card-body text-center">
                         <p><strong>Phone:</strong> {{ member.phone }}</p>
                         <p><strong>Email:</strong> {{ member.email|default:"-" }}</p>
-
                     </div>
                 </div>
             </div>
@@ -124,7 +121,6 @@
                     <div class="card-body">
                         <p><strong>Current Balance:</strong> UGX {{ account.balance|floatformat:2 }}</p>
                         <p><strong>Recent Balance:</strong> UGX {{ recent_balance|floatformat:2 }}</p>
-                    
                     </div>
                 </div>
             </div>
@@ -197,14 +193,13 @@
     CUSTOM CSS
 ======================= -->
 <style>
+/* BASE STYLES */
 .dashboard-container {
     display: flex;
     min-height: 100vh;
     background-color: #f4f7f6;
     font-family: 'Poppins', sans-serif;
 }
-
-/* Sidebar */
 .sidebar {
     width: 240px;
     min-height: 100vh;
@@ -212,46 +207,41 @@
     left: 0;
     top: 0;
     background-color: #28a745;
+    transition: all 0.3s ease;
 }
-
-.nav-link {
-    color: #fff;
-    transition: 0.3s;
-}
-.nav-link:hover {
-    background: rgba(255, 255, 255, 0.15);
-    border-radius: 5px;
-}
-
-/* Main Content */
+.nav-link { color: #fff; transition: 0.3s; }
+.nav-link:hover { background: rgba(255,255,255,0.15); border-radius: 5px; }
 .main-content {
     margin-left: 1px;
     padding: 2rem;
     flex-grow: 1;
+    transition: all 0.3s ease;
 }
-
-/* Stat Cards */
 .stat-card {
     border-left: 5px solid #1e7e34;
     border-radius: 8px;
     transition: transform 0.2s;
 }
-.stat-card:hover {
-    transform: translateY(-3px);
-}
+.stat-card:hover { transform: translateY(-3px); }
+.table th, .table td { vertical-align: middle; }
+.card-header { font-weight: bold; }
+img.img-fluid { border-radius: 50%; }
 
-/* Transactions Table */
-.table th, .table td {
-    vertical-align: middle;
+/* RESPONSIVE STYLES */
+@media (max-width: 992px) {
+    .dashboard-container { flex-direction: column; }
+    .sidebar {
+        position: relative;
+        width: 100%;
+        min-height: auto;
+    }
+    .main-content { margin-left: 0; padding: 1rem; }
 }
-
-/* Card Headers */
-.card-header {
-    font-weight: bold;
-}
-
-img.img-fluid {
-    border-radius: 50%;
+@media (max-width: 768px) {
+    .stat-card { margin-bottom: 1rem; text-align: center; }
+    .main-content .row.g-4 { flex-direction: column; }
+    .table-responsive { overflow-x: auto; }
+    img.img-fluid { width: 100px; height: 100px; }
 }
 </style>
 
