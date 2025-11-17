@@ -180,6 +180,18 @@ class UserActivityLog(models.Model):
 
     def __str__(self):
         return f"{self.member} - {self.action} at {self.timestamp}"
+    
+# -------------------- NOTIFICATIONS --------------------
+class Notification(models.Model):
+    member = models.ForeignKey(Member, on_delete=models.CASCADE, related_name='notifications')
+    message = models.TextField()
+    is_read = models.BooleanField(default=False)
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        status = "Read" if self.is_read else "Unread"
+        return f"{self.member.first_name} {self.member.last_name} - {status}: {self.message[:30]}"
+
 
 # -------------------- SIGNALS --------------------
 # Automatically create SavingAccount and Django User with temporary password when a new Member is created

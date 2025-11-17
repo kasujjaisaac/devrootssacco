@@ -7,34 +7,65 @@
 
     <title>{% block title %}SACCO System{% endblock %}</title>
 
+    <!-- Google Fonts: Poppins -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
 
     <style>
-        body {
-            font-family: 'poppins', sans-serif;
-            background-color: #f5f6fa;
+        /* =========================
+           GLOBAL STYLES
+        ========================= */
+        body, h1, h2, h3, h4, h5, h6, p, a, td, th, label, div {
+            font-family: 'Poppins', sans-serif;
+            text-align: left;
         }
 
-        /* SIDEBAR */
+        body {
+            background-color: #f5f6fa;
+            margin: 0;
+        }
+
+        a { text-decoration: none; }
+
+        /* =========================
+           SIDEBAR
+        ========================= */
         .sidebar {
             height: 100vh;
             width: 240px;
-            background-color: #0d6efd;
+            background-color: rgba(3, 104, 39, 0.795);
             color: white;
             position: fixed;
             left: 0;
             top: 0;
             padding-top: 20px;
+            transition: transform 0.3s ease;
+            z-index: 1030;
+        }
+
+        .sidebar img.logo {
+            width: 100px;
+            display: block;
+            margin: 0 auto 10px auto;
+        }
+
+        .sidebar h4 {
+            text-align: center;
+            margin-bottom: 20px;
         }
 
         .sidebar a {
             display: block;
             padding: 12px 20px;
-            text-decoration: none;
             color: #dbe4ff;
             font-size: 16px;
             font-weight: 500;
+            transition: all 0.2s;
         }
 
         .sidebar a:hover {
@@ -47,84 +78,165 @@
             color: white;
         }
 
-        /* MAIN CONTENT */
+        .sidebar.collapsed {
+            transform: translateX(-100%);
+        }
+
+        /* =========================
+           MAIN CONTENT
+        ========================= */
         .content {
             margin-left: 240px;
             padding: 20px 30px;
+            transition: margin-left 0.3s ease;
+            min-height: calc(100vh - 70px);
         }
 
-        /* TOPBAR */
+        .content.full-width {
+            margin-left: 0;
+        }
+
+        /* =========================
+           TOPBAR
+        ========================= */
         .topbar {
             background: white;
             padding: 12px 20px;
             border-bottom: 1px solid #dfe6e9;
             margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .hamburger {
+            display: none;
+            font-size: 24px;
+            cursor: pointer;
+            background: none;
+            border: none;
+        }
+
+        /* Notification dropdown */
+        .dropdown-menu {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        /* =========================
+           FOOTER
+        ========================= */
+        footer {
+            background: rgba(255, 255, 255, 0.795);
+            padding: 10px 0;
+            font-size: 14px;
+            color: rgb(28, 3, 3);
+        }
+
+        /* =========================
+           OVERLAY FOR MOBILE SIDEBAR
+        ========================= */
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.4);
+            z-index: 1025;
+        }
+        .overlay.show { display: block; }
+
+        /* =========================
+           RESPONSIVE
+        ========================= */
+        @media (max-width: 992px) {
+            .sidebar { transform: translateX(-100%); position: fixed; }
+            .sidebar.show { transform: translateX(0); }
+            .content { margin-left: 0; }
+            .hamburger { display: inline-block; }
         }
     </style>
 
     {% block extra_css %}{% endblock %}
 </head>
-
 <body>
 
     <!-- SIDEBAR -->
-    <div class="sidebar">
-        <h4 class="text-center mb-4">📊 SACCO Portal</h4>
-
-        <a href="{% url 'member_dashboard' %}"
-           class="{% if request.resolver_match.url_name == 'member_dashboard' %}active{% endif %}">
-           Dashboard
-        </a>
-
-        <a href="#">Savings</a>
-        <a href="#">Loans</a>
-        <a href="#">Transactions</a>
-        <a href="#">Profile</a>
-
-        <!-- SETTINGS (Safe placeholder link) -->
-        <a href="#" title="Settings">⚙️ Settings</a>
-
-        <hr style="border-color: rgba(255,255,255,0.3);">
-
-        <a href="{% url 'member_logout' %}" class="logout-btn text-danger fw-bold">
-            Logout
-        </a>
+    <div id="sidebar" class="sidebar">
+        <img src="{% static 'img/logo.png' %}" class="logo" alt="DevRoots Logo">
+        <h4>DevRoots SACCO</h4>
+        <a href="{% url 'dashboard' %}" class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">Dashboard</a>
+        <a href="{% url 'profile' %}" class="{% if request.resolver_match.url_name == 'profile' %}active{% endif %}">Profile</a>
+        <a href="{% url 'loans' %}" class="{% if request.resolver_match.url_name == 'loans' %}active{% endif %}">Loans</a>
+        <a href="{% url 'savings' %}" class="{% if request.resolver_match.url_name == 'savings' %}active{% endif %}">Savings</a>
+        <a href="{% url 'transactions' %}" class="{% if request.resolver_match.url_name == 'transactions' %}active{% endif %}">Transactions</a>
+        <a href="{% url 'support' %}" class="{% if request.resolver_match.url_name == 'support' %}active{% endif %}">Support</a>
+        <a href="{% url 'member_logout' %}">Logout</a>
     </div>
 
+    <!-- MOBILE OVERLAY -->
+    <div id="overlay" class="overlay"></div>
+
     <!-- MAIN CONTENT -->
-    <div class="content">
+    <div class="content" id="main-content">
+        <div class="topbar">
+            <button class="hamburger" id="hamburger-btn">&#9776;</button>
+            <h5 class="m-0">Welcome, {{ member.first_name|default:"Guest" }} {{ member.last_name|default:"" }}</h5>
 
-        <!-- TOP BAR -->
-        <div class="topbar d-flex justify-content-between align-items-center">
-            <h5 class="m-0">Welcome, {{ member.first_name }} {{ member.last_name }}</h5>
-
+            <!-- Buttons with icons & notification dropdown -->
             <div class="d-flex align-items-center gap-2">
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-warning dropdown-toggle d-flex align-items-center gap-1" type="button" id="notifDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-bell-fill"></i> Notifications
+                        {% if unread_notifications_count > 0 %}
+                            <span class="badge bg-danger">{{ unread_notifications_count }}</span>
+                        {% endif %}
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="notifDropdown">
+                        {% for notif in recent_notifications %}
+                            <li class="dropdown-item{% if not notif.is_read %} fw-bold{% endif %}">
+                                {{ notif.message }}<br>
+                                <small class="text-muted">{{ notif.created_at|timesince }} ago</small>
+                            </li>
+                        {% empty %}
+                            <li class="dropdown-item text-muted">No notifications</li>
+                        {% endfor %}
+                    </ul>
+                </div>
 
-                <!-- Notifications (Safe placeholder) -->
-                <a href="#" class="btn btn-sm btn-warning">🔔 Notifications</a>
-
-                <!-- Support (Placeholder) -->
-                <a href="#" class="btn btn-sm btn-info">Support</a>
-
-                <!-- LOGOUT -->
-                <a href="{% url 'member_logout' %}" class="btn btn-sm btn-danger">Logout</a>
+                <a href="{% url 'support' %}" class="btn btn-sm btn-info d-flex align-items-center gap-1">
+                    <i class="bi bi-headset"></i> Support
+                </a>
+                <a href="{% url 'member_logout' %}" class="btn btn-sm btn-danger d-flex align-items-center gap-1">
+                    <i class="bi bi-box-arrow-right"></i> Logout
+                </a>
             </div>
         </div>
 
-        {% block content %}
-        {% endblock %}
-
+        {% block content %}{% endblock %}
     </div>
 
     <!-- FOOTER -->
-    <footer class="text-center mt-4 mb-2 text-muted">
-        &copy; 2025 DevRoots SACCO - “Empowering Innovators, Growing Together.”
-
-"
+    <footer class="text-center mt-4 mb-2">
+        &copy; 2025 DevRoots SACCO - “Empowering Tech Talents and Innovators”
     </footer>
 
-    <!-- Bootstrap JS -->
+    <!-- BOOTSTRAP & SIDEBAR JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const hamburgerBtn = document.getElementById('hamburger-btn');
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('overlay');
+
+        hamburgerBtn.addEventListener('click', () => {
+            sidebar.classList.toggle('show');
+            overlay.classList.toggle('show');
+        });
+
+        overlay.addEventListener('click', () => {
+            sidebar.classList.remove('show');
+            overlay.classList.remove('show');
+        });
+    </script>
 
     {% block extra_js %}{% endblock %}
 </body>

@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+
+{% block title %}Savings Account{% endblock %}
+
+{% block content %}
+<h2>Savings Account</h2>
+{% if account %}
+<p>Current Balance: UGX {{ account.balance|floatformat:2 }}</p>
+{% else %}
+<p>No savings account found.</p>
+{% endif %}
+{% endblock %}
