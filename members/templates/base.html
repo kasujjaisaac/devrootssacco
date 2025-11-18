@@ -17,24 +17,17 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
 
     <style>
-        /* =========================
-           GLOBAL STYLES
-        ========================= */
         body, h1, h2, h3, h4, h5, h6, p, a, td, th, label, div {
             font-family: 'Poppins', sans-serif;
             text-align: left;
         }
-
         body {
             background-color: #f5f6fa;
             margin: 0;
         }
-
         a { text-decoration: none; }
 
-        /* =========================
-           SIDEBAR
-        ========================= */
+        /* SIDEBAR */
         .sidebar {
             height: 100vh;
             width: 240px;
@@ -47,18 +40,12 @@
             transition: transform 0.3s ease;
             z-index: 1030;
         }
-
         .sidebar img.logo {
             width: 100px;
             display: block;
             margin: 0 auto 10px auto;
         }
-
-        .sidebar h4 {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-
+        .sidebar h4 { text-align: center; margin-bottom: 20px; }
         .sidebar a {
             display: block;
             padding: 12px 20px;
@@ -67,38 +54,45 @@
             font-weight: 500;
             transition: all 0.2s;
         }
-
         .sidebar a:hover {
             background-color: rgba(255,255,255,0.15);
             color: white;
         }
-
         .sidebar .active {
             background-color: rgba(255,255,255,0.25);
             color: white;
         }
+        .sidebar.collapsed { transform: translateX(-100%); }
 
-        .sidebar.collapsed {
-            transform: translateX(-100%);
+        /* Sidebar icons */
+        .sidebar a i {
+            font-size: 18px;
+            margin-right: 8px;
         }
 
-        /* =========================
-           MAIN CONTENT
-        ========================= */
+        /* Logout should stand out */
+        .logout-btn {
+            background-color: rgba(255, 0, 0, 0.25);
+            color: #fff !important;
+            font-weight: 600;
+            border-top: 1px solid rgba(255,255,255,0.2);
+            margin-top: 20px;
+        }
+        .logout-btn:hover {
+            background-color: rgba(255, 0, 0, 0.45);
+            color: #fff !important;
+        }
+
+        /* MAIN CONTENT */
         .content {
             margin-left: 240px;
             padding: 20px 30px;
             transition: margin-left 0.3s ease;
             min-height: calc(100vh - 70px);
         }
+        .content.full-width { margin-left: 0; }
 
-        .content.full-width {
-            margin-left: 0;
-        }
-
-        /* =========================
-           TOPBAR
-        ========================= */
+        /* TOPBAR */
         .topbar {
             background: white;
             padding: 12px 20px;
@@ -108,7 +102,6 @@
             justify-content: space-between;
             align-items: center;
         }
-
         .hamburger {
             display: none;
             font-size: 24px;
@@ -117,15 +110,20 @@
             border: none;
         }
 
+        /* MOBILE: Hide welcome text */
+        @media (max-width: 600px) {
+            .welcome-text { 
+                display: none !important; 
+            }
+        }
+
         /* Notification dropdown */
         .dropdown-menu {
             max-height: 300px;
             overflow-y: auto;
         }
 
-        /* =========================
-           FOOTER
-        ========================= */
+        /* FOOTER */
         footer {
             background: rgba(255, 255, 255, 0.795);
             padding: 10px 0;
@@ -133,9 +131,7 @@
             color: rgb(28, 3, 3);
         }
 
-        /* =========================
-           OVERLAY FOR MOBILE SIDEBAR
-        ========================= */
+        /* OVERLAY FOR MOBILE SIDEBAR */
         .overlay {
             display: none;
             position: fixed;
@@ -145,14 +141,72 @@
         }
         .overlay.show { display: block; }
 
-        /* =========================
-           RESPONSIVE
-        ========================= */
+        /* RESPONSIVE */
         @media (max-width: 992px) {
             .sidebar { transform: translateX(-100%); position: fixed; }
             .sidebar.show { transform: translateX(0); }
             .content { margin-left: 0; }
             .hamburger { display: inline-block; }
+        }
+
+        /* ============================
+           NEW MOBILE IMPROVED LAYOUT
+           ============================ */
+
+        @media (max-width: 768px) {
+            .dashboard-container {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100% !important;
+                height: auto !important;
+                position: fixed;
+            }
+
+            .content {
+                width: 100% !important;
+                padding: 15px;
+                margin-left: 0 !important;
+            }
+
+            .card {
+                margin-bottom: 15px;
+                width: 100% !important;
+            }
+
+            .cards-grid {
+                display: flex;
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .card-title,
+            .card-text {
+                font-size: 15px;
+                line-height: 1.4;
+            }
+
+            .btn {
+                width: 100%;
+                padding: 12px;
+                font-size: 15px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .sidebar .nav-link {
+                font-size: 14px;
+                padding: 10px 14px;
+            }
+
+            .card-title {
+                font-size: 16px;
+            }
+
+            .card-text {
+                font-size: 14px;
+            }
         }
     </style>
 
@@ -164,13 +218,34 @@
     <div id="sidebar" class="sidebar">
         <img src="{% static 'img/logo.png' %}" class="logo" alt="DevRoots Logo">
         <h4>DevRoots SACCO</h4>
-        <a href="{% url 'dashboard' %}" class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">Dashboard</a>
-        <a href="{% url 'profile' %}" class="{% if request.resolver_match.url_name == 'profile' %}active{% endif %}">Profile</a>
-        <a href="{% url 'loans' %}" class="{% if request.resolver_match.url_name == 'loans' %}active{% endif %}">Loans</a>
-        <a href="{% url 'savings' %}" class="{% if request.resolver_match.url_name == 'savings' %}active{% endif %}">Savings</a>
-        <a href="{% url 'transactions' %}" class="{% if request.resolver_match.url_name == 'transactions' %}active{% endif %}">Transactions</a>
-        <a href="{% url 'support' %}" class="{% if request.resolver_match.url_name == 'support' %}active{% endif %}">Support</a>
-        <a href="{% url 'member_logout' %}">Logout</a>
+
+        <a href="{% url 'dashboard' %}" class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+            <i class="bi bi-speedometer2"></i> Dashboard
+        </a>
+
+        <a href="{% url 'profile' %}" class="{% if request.resolver_match.url_name == 'profile' %}active{% endif %}">
+            <i class="bi bi-person-circle"></i> Profile
+        </a>
+
+        <a href="{% url 'loans' %}" class="{% if request.resolver_match.url_name == 'loans' %}active{% endif %}">
+            <i class="bi bi-cash-coin"></i> Loans
+        </a>
+
+        <a href="{% url 'savings' %}" class="{% if request.resolver_match.url_name == 'savings' %}active{% endif %}">
+            <i class="bi bi-piggy-bank"></i> Savings
+        </a>
+
+        <a href="{% url 'transactions' %}" class="{% if request.resolver_match.url_name == 'transactions' %}active{% endif %}">
+            <i class="bi bi-arrow-left-right"></i> Transactions
+        </a>
+
+        <a href="{% url 'support' %}" class="{% if request.resolver_match.url_name == 'support' %}active{% endif %}">
+            <i class="bi bi-headset"></i> Support
+        </a>
+
+        <a href="{% url 'member_logout' %}" class="logout-btn">
+            <i class="bi bi-box-arrow-right"></i> Logout
+        </a>
     </div>
 
     <!-- MOBILE OVERLAY -->
@@ -180,17 +255,22 @@
     <div class="content" id="main-content">
         <div class="topbar">
             <button class="hamburger" id="hamburger-btn">&#9776;</button>
-            <h5 class="m-0">Welcome, {{ member.first_name|default:"Guest" }} {{ member.last_name|default:"" }}</h5>
 
-            <!-- Buttons with icons & notification dropdown -->
+            <!-- Welcome text (hidden on mobile) -->
+            <h5 class="m-0 welcome-text">Welcome, {{ member.first_name|default:"Guest" }} {{ member.last_name|default:"" }}</h5>
+
+            <!-- Buttons -->
             <div class="d-flex align-items-center gap-2">
+
                 <div class="dropdown">
-                    <button class="btn btn-sm btn-warning dropdown-toggle d-flex align-items-center gap-1" type="button" id="notifDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                    <button class="btn btn-sm btn-warning dropdown-toggle d-flex align-items-center gap-1" 
+                            type="button" id="notifDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                         <i class="bi bi-bell-fill"></i> Notifications
                         {% if unread_notifications_count > 0 %}
                             <span class="badge bg-danger">{{ unread_notifications_count }}</span>
                         {% endif %}
                     </button>
+
                     <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="notifDropdown">
                         {% for notif in recent_notifications %}
                             <li class="dropdown-item{% if not notif.is_read %} fw-bold{% endif %}">
@@ -206,6 +286,7 @@
                 <a href="{% url 'support' %}" class="btn btn-sm btn-info d-flex align-items-center gap-1">
                     <i class="bi bi-headset"></i> Support
                 </a>
+
                 <a href="{% url 'member_logout' %}" class="btn btn-sm btn-danger d-flex align-items-center gap-1">
                     <i class="bi bi-box-arrow-right"></i> Logout
                 </a>
@@ -215,12 +296,11 @@
         {% block content %}{% endblock %}
     </div>
 
-    <!-- FOOTER -->
     <footer class="text-center mt-4 mb-2">
         &copy; 2025 DevRoots SACCO - “Empowering Tech Talents and Innovators”
     </footer>
 
-    <!-- BOOTSTRAP & SIDEBAR JS -->
+    <!-- JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         const hamburgerBtn = document.getElementById('hamburger-btn');

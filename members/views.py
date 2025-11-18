@@ -5,9 +5,13 @@ from django.contrib.auth import authenticate, login, logout, update_session_auth
 from django.contrib.auth.models import User
 from django.contrib import messages
 from .forms import AdminAddMemberForm
-from .models import Member, SavingAccount, SavingTransaction, UserActivityLog, Notification
+from .models import (
+    Member, SavingAccount, SavingTransaction, UserActivityLog, Notification,
+    Loan, LoanRepayment, LoanGuarantor
+)
 import random
 import string
+from datetime import date
 
 
 # ==========================
@@ -34,6 +38,7 @@ def add_member(request):
             member.status = 'ACTIVE'
             member.save()
 
+            # Create user if not exists
             if not member.user:
                 username = f"{member.first_name.lower()}.{member.last_name.lower()}.{member.member_id[-4:]}"
                 otp_password = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
@@ -46,7 +51,6 @@ def add_member(request):
                     last_name=member.last_name
                 )
 
-                # Use Member.temp_password instead of patching User
                 member.user = user
                 member.temp_password = True
                 member.save()
@@ -123,6 +127,14 @@ def member_dashboard(request):
     unread_notifications_count = member.notifications.filter(is_read=False).count()
     recent_notifications = member.notifications.order_by('-timestamp')[:5]
 
+    # Latest loan
+    loan = Loan.objects.filter(member=member).order_by('-start_date').first()
+    guarantors = LoanGuarantor.objects.filter(loan=loan) if loan else None
+    repayments = LoanRepayment.objects.filter(loan=loan).order_by('-date_paid') if loan else None
+
+    # Monthly interest
+    monthly_interest = loan.calculate_monthly_interest() if loan else 0
+
     context = {
         'member': member,
         'account': account,
@@ -131,6 +143,10 @@ def member_dashboard(request):
         'recent_logs': recent_logs,
         'unread_notifications_count': unread_notifications_count,
         'recent_notifications': recent_notifications,
+        'loan': loan,
+        'guarantors': guarantors,
+        'repayments': repayments,
+        'monthly_interest': monthly_interest,
     }
     return render(request, 'members/dashboard.html', context)
 
@@ -199,8 +215,20 @@ def change_password(request):
 @login_required
 def member_loans(request):
     member = request.user.member
-    loans = []  # Replace with actual Loan model query
-    return render(request, 'members/loans.html', {'member': member, 'loans': loans})
+
+    loan = Loan.objects.filter(member=member).order_by('-start_date').first()
+    guarantors = LoanGuarantor.objects.filter(loan=loan) if loan else None
+    repayments = LoanRepayment.objects.filter(loan=loan).order_by('-date_paid') if loan else None
+    monthly_interest = loan.calculate_monthly_interest() if loan else 0
+
+    context = {
+        'member': member,
+        'loan': loan,
+        'guarantors': guarantors,
+        'repayments': repayments,
+        'monthly_interest': monthly_interest,
+    }
+    return render(request, 'members/loans.html', context)
 
 
 # ==========================
@@ -232,8 +260,9 @@ def member_support(request):
     member = request.user.member
     return render(request, 'members/support.html', {'member': member})
 
+
 # ==========================
-# LIST ALL MEMBERS
+# LIST ALL MEMBERS (ADMIN)
 # ==========================
 @staff_member_required
 def members_list(request):
@@ -251,7 +280,7 @@ def mark_notification_read(request, notification_id):
         notification = Notification.objects.get(id=notification_id, member=member)
         notification.is_read = True
         notification.save()
-        return redirect('dashboard')  # or return JsonResponse({'status': 'ok'})
+        return redirect('dashboard')  # or JsonResponse({'status': 'ok'})
     except Notification.DoesNotExist:
         messages.error(request, "Notification not found.")
         return redirect('dashboard')

@@ -1,8 +1,158 @@
 {% extends "base.html" %}
+{% load static %}
 
-{% block title %}Loans{% endblock %}
+{% block title %}My Loan{% endblock %}
 
 {% block content %}
-<h2>My Loans</h2>
-<p>This is the loans page. Loan details will appear here.</p>
+<div class="container-fluid mt-3">
+
+    <!-- PAGE TITLE -->
+    <h3 class="mb-4 fw-bold text-success">My Loan Overview</h3>
+
+    {% if loan %}
+    
+    <!-- =============== LOAN HEADER =============== -->
+    <div class="card shadow-sm rounded-3 mb-4">
+        <div class="card-header green-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="fw-bold mb-0">Loan #{{ loan.id }}</h5>
+
+                <!-- STATUS BADGES -->
+                {% if loan.status == "ACTIVE" %}
+                    <span class="badge bg-success">Active</span>
+                {% elif loan.status == "PENDING" %}
+                    <span class="badge bg-warning text-dark">Pending</span>
+                {% elif loan.status == "PAID" %}
+                    <span class="badge bg-primary">Completed</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card-body">
+
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <small class="text-muted">Principal Amount</small>
+                    <p class="fs-4 fw-bold text-dark">UGX {{ loan.principal_amount|floatformat:0 }}</p>
+                </div>
+
+                <div class="col-md-4">
+                    <small class="text-muted">Interest Rate</small>
+                    <p class="fs-5 fw-semibold text-dark">{{ loan.interest_rate }}%</p>
+                </div>
+
+                <div class="col-md-4">
+                    <small class="text-muted">Current Balance</small>
+                    <p class="fs-4 fw-bold text-danger">UGX {{ loan.current_balance|floatformat:0 }}</p>
+                </div>
+            </div>
+
+            <div class="row mb-2">
+                <div class="col-md-4">
+                    <small class="text-muted">Date Issued</small>
+                    <p class="fw-semibold">{{ loan.start_date }}</p>
+                </div>
+                <div class="col-md-4">
+                    <small class="text-muted">End Date</small>
+                    <p class="fw-semibold">{{ loan.end_date }}</p>
+                </div>
+                <div class="col-md-4">
+                    <small class="text-muted">Loan Term</small>
+                    <p class="fw-semibold">{{ loan.loan_term }} months</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+
+    <!-- =============== GUARANTORS =============== -->
+    <div class="card shadow-sm rounded-3 mb-4">
+        <div class="card-header green-header">
+            <h5 class="fw-bold mb-0">Loan Guarantors</h5>
+        </div>
+
+        <div class="card-body">
+            {% if guarantors %}
+                <ul class="list-group">
+                    {% for g in guarantors %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>{{ g.guarantor_name }}</strong><br>
+                            <small class="text-muted">{{ g.guarantor_email }}</small>
+                        </div>
+                        <span class="text-muted">{{ g.guarantor_phone }}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p class="text-muted">No guarantors assigned.</p>
+            {% endif %}
+        </div>
+    </div>
+
+
+    <!-- =============== MONTHLY INTEREST =============== -->
+    <div class="card shadow-sm rounded-3 mb-4">
+        <div class="card-header green-header">
+            <h5 class="fw-bold mb-0">Monthly Interest</h5>
+        </div>
+
+        <div class="card-body">
+            <p class="mb-1">Monthly interest rate: <strong>{{ loan.interest_rate }}%</strong></p>
+            <p class="fs-5 fw-bold text-danger">Current Monthly Interest: UGX {{ monthly_interest|floatformat:0 }}</p>
+        </div>
+    </div>
+
+
+    <!-- =============== REPAYMENT HISTORY =============== -->
+    <div class="card shadow-sm rounded-3 mb-4">
+        <div class="card-header green-header">
+            <h5 class="fw-bold mb-0">Repayment History</h5>
+        </div>
+
+        <div class="card-body">
+            {% if repayments %}
+            <table class="table table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>Date</th>
+                        <th>Amount Paid</th>
+                        <th>Balance After Payment</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for pay in repayments %}
+                    <tr>
+                        <td>{{ pay.date_paid }}</td>
+                        <td>UGX {{ pay.amount_paid|floatformat:0 }}</td>
+                        <td>UGX {{ pay.balance_after|floatformat:0 }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p class="text-muted">No repayments recorded yet.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    {% else %}
+        <div class="alert alert-info mt-4">
+            You currently have no loan.
+        </div>
+    {% endif %}
+</div>
+
+<!-- CUSTOM GREEN THEME CSS -->
+<style>
+    .green-header {
+        background: rgba(3, 104, 39, 0.795);
+        color: white;
+        font-weight: 600;
+        padding: 12px 16px;
+        border-radius: 6px 6px 0 0;
+    }
+</style>
+
 {% endblock %}

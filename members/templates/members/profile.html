@@ -12,9 +12,8 @@
     <div class="row mb-4">
         <!-- PROFILE PIC & NAME -->
         <div class="col-md-4 text-center">
-            <img src="{% if member.profile_pic and member.profile_pic.name != 'default-avatar.png' %}{{ member.profile_pic.url }}{% else %}{% static 'img/default-avatar.png' %}{% endif %}" 
-                 alt="{{ member.first_name }} {{ member.last_name }}" 
-                 class="img-fluid rounded-circle mb-3" width="150" height="150">
+            <img src="{% if member.profile_pic %}{{ member.profile_pic.url }}{% else %}{% static 'img/default-avatar.png' %}{% endif %}" 
+                 alt="Profile Picture" class="profile-pic mb-2">
             <h4 class="fw-bold">{{ member.first_name }} {{ member.last_name }}</h4>
             <p class="text-muted">{{ member.member_id }}</p>
 
@@ -96,6 +95,13 @@
         padding: 12px 16px;
         border-radius: 6px 6px 0 0;
     }
+
+    .profile-pic {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid rgba(3, 104, 39, 0.8);
 
     img.img-fluid { 
         border-radius: 50%; 

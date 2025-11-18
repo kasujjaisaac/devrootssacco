@@ -1,14 +1,15 @@
 from django.db import models
-from datetime import datetime
+from datetime import datetime, timedelta
 from django.contrib.auth.models import User
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 import uuid
 import random
 import string
-import os
 
-# -------------------- MEMBER MODEL --------------------
+# ============================================================
+#                      MEMBER MODEL
+# ============================================================
 class Member(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, null=True, blank=True)
 
@@ -47,27 +48,18 @@ class Member(models.Model):
         ('Above 1,000,000', 'Above 1,000,000'),
     ]
 
-    # PROFILE PIC
-    profile_pic = models.ImageField(
-        upload_to="profile_pics/",
-        default="default-avatar.png",
-        null=True,
-        blank=True
-    )
+    # Profile Picture
+    profile_pic = models.ImageField(upload_to="profile_pics/", default="default-avatar.png",
+                                    null=True, blank=True)
 
-    # NATIONAL ID COPY
-    national_id_copy = models.FileField(
-        upload_to='national_ids/',
-        blank=True,
-        null=True,
-        help_text='Upload National ID copy (PDF, PNG, JPG, JPEG).'
-    )
-
+    # National ID copy
+    national_id_copy = models.FileField(upload_to='national_ids/', blank=True,
+                                        null=True, help_text='Upload National ID copy (PDF, PNG, JPG, JPEG).')
 
     # Auto-generated Member ID
     member_id = models.CharField(max_length=20, unique=True, blank=True)
 
-    # Personal Information
+    # Personal info
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)
     gender = models.CharField(max_length=20, choices=GENDER_CHOICES)
@@ -83,7 +75,7 @@ class Member(models.Model):
     address = models.TextField()
     preferred_contact = models.CharField(max_length=20, choices=COMMUNICATION_CHOICES, blank=True)
 
-    # KYC / Employment Info
+    # KYC / Employment
     national_id = models.CharField(max_length=20, unique=True)
     occupation = models.CharField(max_length=100, blank=True, null=True)
     employment_status = models.CharField(max_length=50, blank=True)
@@ -110,31 +102,32 @@ class Member(models.Model):
     # System Info
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    temp_password = models.BooleanField(default=True)  # Track if password is temporary
+    temp_password = models.BooleanField(default=True)
 
-    # Auto-generate member ID
+    # Auto-generate Member ID
     def save(self, *args, **kwargs):
         if not self.member_id:
             year = datetime.now().year
-            unique_number = str(uuid.uuid4().int)[:4]
+            unique_number = uuid.uuid4().hex[:4].upper()
             self.member_id = f"DEV-{year}-{unique_number}"
         super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.first_name} {self.last_name} ({self.member_id})"
 
-    # Helper Methods
+    # Helper methods
     def get_balance(self):
-        if hasattr(self, 'savings_account'):
-            return self.savings_account.balance
-        return 0
+        return self.savings_account.balance if hasattr(self, 'savings_account') else 0
 
     def recent_transactions(self, limit=5):
         if hasattr(self, 'savings_account'):
             return self.savings_account.transactions.order_by('-transaction_date')[:limit]
         return []
 
-# -------------------- SAVINGS MODELS --------------------
+
+# ============================================================
+#                  SAVING ACCOUNT & TRANSACTIONS
+# ============================================================
 class SavingAccount(models.Model):
     member = models.OneToOneField(Member, on_delete=models.CASCADE, related_name='savings_account')
     balance = models.DecimalField(max_digits=12, decimal_places=2, default=0)
@@ -158,11 +151,11 @@ class SavingTransaction(models.Model):
     description = models.TextField(blank=True)
 
     def save(self, *args, **kwargs):
-        if not self.pk:  # Only calculate on creation
+        if not self.pk:
             if self.transaction_type == 'DEPOSIT':
                 self.balance_after_transaction = self.account.balance + self.amount
                 self.account.balance += self.amount
-            elif self.transaction_type == 'WITHDRAWAL':
+            else:
                 self.balance_after_transaction = self.account.balance - self.amount
                 self.account.balance -= self.amount
             self.account.save()
@@ -171,7 +164,10 @@ class SavingTransaction(models.Model):
     def __str__(self):
         return f"{self.transaction_type} - {self.amount} on {self.transaction_date.strftime('%Y-%m-%d')}"
 
-# -------------------- USER ACTIVITY LOG --------------------
+
+# ============================================================
+#                  USER ACTIVITY LOG
+# ============================================================
 class UserActivityLog(models.Model):
     member = models.ForeignKey(Member, on_delete=models.CASCADE, related_name='activity_logs')
     action = models.CharField(max_length=255)
@@ -180,8 +176,11 @@ class UserActivityLog(models.Model):
 
     def __str__(self):
         return f"{self.member} - {self.action} at {self.timestamp}"
-    
-# -------------------- NOTIFICATIONS --------------------
+
+
+# ============================================================
+#                     NOTIFICATIONS
+# ============================================================
 class Notification(models.Model):
     member = models.ForeignKey(Member, on_delete=models.CASCADE, related_name='notifications')
     message = models.TextField()
@@ -189,30 +188,101 @@ class Notification(models.Model):
     timestamp = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        status = "Read" if self.is_read else "Unread"
-        return f"{self.member.first_name} {self.member.last_name} - {status}: {self.message[:30]}"
+        return f"{self.member.first_name} - {'Read' if self.is_read else 'Unread'}"
 
 
-# -------------------- SIGNALS --------------------
-# Automatically create SavingAccount and Django User with temporary password when a new Member is created
+# ============================================================
+#                            SIGNALS
+# ============================================================
 @receiver(post_save, sender=Member)
-def create_member_related(sender, instance, created, **kwargs):
+def create_member_accounts(sender, instance, created, **kwargs):
     if created:
-        # Create SavingAccount
+        # Create Saving Account
         SavingAccount.objects.create(member=instance)
 
-        # Create Django User if not exists
+        # Create system user
         if not instance.user:
-            password = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
+            temp_password = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
             username = f"{instance.first_name.lower()}.{instance.last_name.lower()}.{instance.member_id[-4:]}"
             user = User.objects.create_user(
                 username=username,
-                email=instance.email or '',
-                password=password,
+                email=instance.email or "",
+                password=temp_password,
                 first_name=instance.first_name,
-                last_name=instance.last_name
+                last_name=instance.last_name,
             )
             instance.user = user
             instance.temp_password = True
             instance.save()
-            print(f"Created user for {instance}: username={username}, temp_password={password}")
+
+
+# ============================================================
+#                            LOANS
+# ============================================================
+LOAN_STATUS_CHOICES = [
+    ('pending', 'Pending'),
+    ('approved', 'Approved'),
+    ('rejected', 'Rejected'),
+    ('completed', 'Completed'),
+]
+
+class Loan(models.Model):
+    member = models.ForeignKey(Member, on_delete=models.CASCADE, related_name='loans')
+    principal_amount = models.DecimalField(max_digits=12, decimal_places=2)
+    current_balance = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    interest_rate = models.DecimalField(max_digits=5, decimal_places=2, default=0.05)
+    start_date = models.DateField(auto_now_add=True)
+    loan_term = models.IntegerField(default=12, help_text="Loan term in months")
+    end_date = models.DateField(blank=True, null=True)
+    status = models.CharField(max_length=20, choices=LOAN_STATUS_CHOICES, default='pending')
+
+    def save(self, *args, **kwargs):
+        if not self.pk:
+            self.current_balance = self.principal_amount
+            if not self.end_date:
+                self.end_date = self.start_date + timedelta(days=self.loan_term*30)
+        super().save(*args, **kwargs)
+
+    def calculate_monthly_interest(self):
+        rate = self.interest_rate / 100
+        return self.current_balance * rate
+
+    def __str__(self):
+        return f"{self.member.first_name} {self.member.last_name} - Loan {self.principal_amount}"
+
+
+class LoanRepayment(models.Model):
+    loan = models.ForeignKey(Loan, on_delete=models.CASCADE, related_name='repayments')
+    amount_paid = models.DecimalField(max_digits=12, decimal_places=2)
+    date_paid = models.DateField(auto_now_add=True)
+    balance_after_payment = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+
+    def save(self, *args, **kwargs):
+        if not self.pk:
+            self.balance_after_payment = self.loan.current_balance - self.amount_paid
+            self.loan.current_balance -= self.amount_paid
+            if self.loan.current_balance <= 0:
+                self.loan.current_balance = 0
+                self.loan.status = "completed"
+            self.loan.save()
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.loan.member.first_name} paid {self.amount_paid} on {self.date_paid}"
+
+
+class LoanGuarantor(models.Model):
+    loan = models.ForeignKey(Loan, on_delete=models.CASCADE, related_name='guarantors')
+    guarantor = models.ForeignKey(Member, on_delete=models.CASCADE)
+
+    def guarantor_name(self):
+        return f"{self.guarantor.first_name} {self.guarantor.last_name}"
+
+    def guarantor_phone(self):
+        return self.guarantor.phone
+
+    def guarantor_email(self):
+        return self.guarantor.email
+
+    def __str__(self):
+        return f"{self.guarantor.first_name} guarantees {self.loan.member.first_name}"
