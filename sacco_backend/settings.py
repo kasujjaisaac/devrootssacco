@@ -7,10 +7,19 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-s3o=8@phlu%botlgu-w%)2ac4wtc*c69gxb*8go6271a7c32j9'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = True   # Change to False on production for security
 
+# Allow all hosts (you can limit later)
 ALLOWED_HOSTS = ['*']
 
+# IMPORTANT FOR RENDER DEPLOYMENT
+CSRF_TRUSTED_ORIGINS = [
+    "https://devrootssacco.onrender.com",
+    "https://*.onrender.com",
+]
+
+# Fix HTTPS issues on Render
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # Application definition
 INSTALLED_APPS = [
@@ -53,15 +62,13 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'sacco_backend.wsgi.application'
 
-
-# Database
+# Database (using SQLite — optional upgrade later)
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
-
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
@@ -79,13 +86,11 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
 # Internationalization
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
-
 
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = '/static/'
@@ -101,8 +106,8 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 # Enable WhiteNoise for serving static files in production
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
-# Default primary key field type
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+
+# Default primary key field type
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
