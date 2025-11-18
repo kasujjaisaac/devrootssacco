@@ -34,6 +34,7 @@
     flex-direction: row;
   }
 
+  /* LEFT PANEL */
   .left-panel {
     flex: 1;
     padding: 60px 50px;
@@ -63,9 +64,21 @@
   .left-panel h1 { font-size: 2.3rem; font-weight: 700; margin-bottom: 10px; letter-spacing: 1px; }
   .left-panel h3 { font-weight: 500; margin-bottom: 20px; opacity: 0.9; }
   .left-panel p { max-width: 320px; opacity: 0.85; margin-bottom: 25px; line-height: 1.5; }
-  .left-btn { padding: 12px 32px; border-radius: 30px; background: white; color: #0d5625; border: none; font-size: 1rem; font-weight: 600; cursor: pointer; transition: .3s; box-shadow: 0 5px 12px rgba(255,255,255,0.4);}
+  .left-btn {
+    padding: 12px 32px;
+    border-radius: 30px;
+    background: white;
+    color: #0d5625;
+    font-size: 1rem;
+    font-weight: 600;
+    text-decoration: none;
+    display: inline-block;
+    transition: .3s;
+    box-shadow: 0 5px 12px rgba(255,255,255,0.4);
+  }
   .left-btn:hover { background: #000; color: white; transform: translateY(-2px); }
 
+  /* RIGHT PANEL */
   .right-panel {
     flex: 1;
     padding: 55px 45px;
@@ -78,7 +91,6 @@
   }
   .right-panel h2 { font-size: 1.9rem; color: #0f6d2f; font-weight: 700; margin-bottom: 5px; }
   .right-panel p { font-size: 0.9rem; opacity: 0.7; margin-bottom: 25px; }
-
   .error-box { background: rgba(255,0,0,0.2); border-left: 4px solid red; color: #7a0000; padding: 10px; border-radius: 6px; margin-bottom: 20px; }
 
   label { font-weight: 600; font-size: 0.85rem; margin-bottom: 6px; }
@@ -117,14 +129,16 @@
 
 <body>
 <div class="container">
+  <!-- LEFT PANEL -->
   <div class="left-panel">
     <img src="{% static 'img/logo.png' %}" class="left-logo" alt="Logo">
     <h1>DEVROOTS SACCO</h1>
     <h3>MEMBER LOGIN PORTAL</h3>
     <p>Not yet a member?<br>Click below to learn how to join DevRoots SACCO.</p>
-    <button class="left-btn">Learn More</button>
+    <a href="https://devrootsfdn.com/devroots-sacco/" target="_blank" class="left-btn">Learn More</a>
   </div>
 
+  <!-- RIGHT PANEL -->
   <div class="right-panel">
     <h2>Sign In</h2>
     <p>Enter your username and password to access your account.</p>
