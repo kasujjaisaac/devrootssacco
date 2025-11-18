@@ -21,10 +21,7 @@
             font-family: 'Poppins', sans-serif;
             text-align: left;
         }
-        body {
-            background-color: #f5f6fa;
-            margin: 0;
-        }
+        body { background-color: #f5f6fa; margin: 0; }
         a { text-decoration: none; }
 
         /* SIDEBAR */
@@ -40,11 +37,7 @@
             transition: transform 0.3s ease;
             z-index: 1030;
         }
-        .sidebar img.logo {
-            width: 100px;
-            display: block;
-            margin: 0 auto 10px auto;
-        }
+        .sidebar img.logo { width: 100px; display: block; margin: 0 auto 10px auto; }
         .sidebar h4 { text-align: center; margin-bottom: 20px; }
         .sidebar a {
             display: block;
@@ -54,23 +47,12 @@
             font-weight: 500;
             transition: all 0.2s;
         }
-        .sidebar a:hover {
-            background-color: rgba(255,255,255,0.15);
-            color: white;
-        }
-        .sidebar .active {
-            background-color: rgba(255,255,255,0.25);
-            color: white;
-        }
+        .sidebar a:hover { background-color: rgba(255,255,255,0.15); color: white; }
+        .sidebar .active { background-color: rgba(255,255,255,0.25); color: white; }
         .sidebar.collapsed { transform: translateX(-100%); }
 
-        /* Sidebar icons */
-        .sidebar a i {
-            font-size: 18px;
-            margin-right: 8px;
-        }
+        .sidebar a i { font-size: 18px; margin-right: 8px; }
 
-        /* Logout should stand out */
         .logout-btn {
             background-color: rgba(255, 0, 0, 0.25);
             color: #fff !important;
@@ -78,10 +60,7 @@
             border-top: 1px solid rgba(255,255,255,0.2);
             margin-top: 20px;
         }
-        .logout-btn:hover {
-            background-color: rgba(255, 0, 0, 0.45);
-            color: #fff !important;
-        }
+        .logout-btn:hover { background-color: rgba(255, 0, 0, 0.45); color: #fff !important; }
 
         /* MAIN CONTENT */
         .content {
@@ -110,20 +89,8 @@
             border: none;
         }
 
-        /* MOBILE: Hide welcome text */
-        @media (max-width: 600px) {
-            .welcome-text { 
-                display: none !important; 
-            }
-        }
+        .dropdown-menu { max-height: 300px; overflow-y: auto; }
 
-        /* Notification dropdown */
-        .dropdown-menu {
-            max-height: 300px;
-            overflow-y: auto;
-        }
-
-        /* FOOTER */
         footer {
             background: rgba(255, 255, 255, 0.795);
             padding: 10px 0;
@@ -131,7 +98,6 @@
             color: rgb(28, 3, 3);
         }
 
-        /* OVERLAY FOR MOBILE SIDEBAR */
         .overlay {
             display: none;
             position: fixed;
@@ -149,64 +115,28 @@
             .hamburger { display: inline-block; }
         }
 
-        /* ============================
-           NEW MOBILE IMPROVED LAYOUT
-           ============================ */
-
+        /* MOBILE IMPROVED LAYOUT */
         @media (max-width: 768px) {
-            .dashboard-container {
-                flex-direction: column;
-            }
-
-            .sidebar {
-                width: 100% !important;
-                height: auto !important;
-                position: fixed;
-            }
-
-            .content {
-                width: 100% !important;
-                padding: 15px;
-                margin-left: 0 !important;
-            }
-
-            .card {
-                margin-bottom: 15px;
-                width: 100% !important;
-            }
-
-            .cards-grid {
-                display: flex;
-                flex-direction: column;
-                gap: 15px;
-            }
-
-            .card-title,
-            .card-text {
-                font-size: 15px;
-                line-height: 1.4;
-            }
-
-            .btn {
-                width: 100%;
-                padding: 12px;
-                font-size: 15px;
-            }
+            .dashboard-container { flex-direction: column; }
+            .sidebar { width: 100% !important; height: auto !important; position: fixed; }
+            .content { width: 100% !important; padding: 15px; margin-left: 0 !important; }
+            .card { margin-bottom: 15px; width: 100% !important; }
+            .cards-grid { display: flex; flex-direction: column; gap: 15px; }
+            .card-title, .card-text { font-size: 15px; line-height: 1.4; }
+            .btn { width: 100%; padding: 12px; font-size: 15px; }
         }
 
         @media (max-width: 480px) {
-            .sidebar .nav-link {
-                font-size: 14px;
-                padding: 10px 14px;
-            }
+            .sidebar .nav-link { font-size: 14px; padding: 10px 14px; }
+            .card-title { font-size: 16px; }
+            .card-text { font-size: 14px; }
+        }
 
-            .card-title {
-                font-size: 16px;
-            }
-
-            .card-text {
-                font-size: 14px;
-            }
+        /* Topbar icons for mobile only */
+        @media (max-width: 768px) {
+            .topbar .fs-5 { font-size: 1.3rem; }
+            .topbar .position-relative { position: relative; }
+            .topbar .badge { font-size: 0.65rem; padding: 0.25em 0.4em; }
         }
     </style>
 
@@ -222,27 +152,21 @@
         <a href="{% url 'dashboard' %}" class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
             <i class="bi bi-speedometer2"></i> Dashboard
         </a>
-
         <a href="{% url 'profile' %}" class="{% if request.resolver_match.url_name == 'profile' %}active{% endif %}">
             <i class="bi bi-person-circle"></i> Profile
         </a>
-
         <a href="{% url 'loans' %}" class="{% if request.resolver_match.url_name == 'loans' %}active{% endif %}">
             <i class="bi bi-cash-coin"></i> Loans
         </a>
-
         <a href="{% url 'savings' %}" class="{% if request.resolver_match.url_name == 'savings' %}active{% endif %}">
             <i class="bi bi-piggy-bank"></i> Savings
         </a>
-
         <a href="{% url 'transactions' %}" class="{% if request.resolver_match.url_name == 'transactions' %}active{% endif %}">
             <i class="bi bi-arrow-left-right"></i> Transactions
         </a>
-
         <a href="{% url 'support' %}" class="{% if request.resolver_match.url_name == 'support' %}active{% endif %}">
             <i class="bi bi-headset"></i> Support
         </a>
-
         <a href="{% url 'member_logout' %}" class="logout-btn">
             <i class="bi bi-box-arrow-right"></i> Logout
         </a>
@@ -256,22 +180,34 @@
         <div class="topbar">
             <button class="hamburger" id="hamburger-btn">&#9776;</button>
 
-            <!-- Welcome text (hidden on mobile) -->
+            <!-- Welcome text visible across all devices -->
             <h5 class="m-0 welcome-text">Welcome, {{ member.first_name|default:"Guest" }} {{ member.last_name|default:"" }}</h5>
 
-            <!-- Buttons -->
             <div class="d-flex align-items-center gap-2">
 
+                <!-- Notifications -->
                 <div class="dropdown">
-                    <button class="btn btn-sm btn-warning dropdown-toggle d-flex align-items-center gap-1" 
-                            type="button" id="notifDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                    <!-- Desktop/tablet: button with text -->
+                    <button class="btn btn-sm btn-warning dropdown-toggle d-flex align-items-center gap-1 d-none d-md-flex" 
+                            type="button" id="notifDropdownDesktop" data-bs-toggle="dropdown" aria-expanded="false">
                         <i class="bi bi-bell-fill"></i> Notifications
                         {% if unread_notifications_count > 0 %}
                             <span class="badge bg-danger">{{ unread_notifications_count }}</span>
                         {% endif %}
                     </button>
 
-                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="notifDropdown">
+                    <!-- Mobile: icon only -->
+                    <a href="#" class="d-flex d-md-none text-dark position-relative fs-5" id="notifDropdownMobile" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-bell-fill"></i>
+                        {% if unread_notifications_count > 0 %}
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                {{ unread_notifications_count }}
+                                <span class="visually-hidden">unread messages</span>
+                            </span>
+                        {% endif %}
+                    </a>
+
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="notifDropdownDesktop">
                         {% for notif in recent_notifications %}
                             <li class="dropdown-item{% if not notif.is_read %} fw-bold{% endif %}">
                                 {{ notif.message }}<br>
@@ -283,13 +219,22 @@
                     </ul>
                 </div>
 
-                <a href="{% url 'support' %}" class="btn btn-sm btn-info d-flex align-items-center gap-1">
+                <!-- Support -->
+                <a href="{% url 'support' %}" class="btn btn-sm btn-info d-flex align-items-center gap-1 d-none d-md-flex">
                     <i class="bi bi-headset"></i> Support
                 </a>
+                <a href="{% url 'support' %}" class="d-flex d-md-none text-info fs-5">
+                    <i class="bi bi-headset"></i>
+                </a>
 
-                <a href="{% url 'member_logout' %}" class="btn btn-sm btn-danger d-flex align-items-center gap-1">
+                <!-- Logout -->
+                <a href="{% url 'member_logout' %}" class="btn btn-sm btn-danger d-flex align-items-center gap-1 d-none d-md-flex">
                     <i class="bi bi-box-arrow-right"></i> Logout
                 </a>
+                <a href="{% url 'member_logout' %}" class="d-flex d-md-none text-danger fs-5">
+                    <i class="bi bi-box-arrow-right"></i>
+                </a>
+
             </div>
         </div>
 
