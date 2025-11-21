@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Members List{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">All SACCO Members</h2>
+
+    <a href="{% url 'add_member' %}" class="btn btn-success mb-3"><i class="bi bi-person-plus"></i> Add Member</a>
+
+    <table class="table table-bordered table-hover">
+        <thead class="table-light">
+            <tr>
+                <th>ID</th>
+                <th>Full Name</th>
+                <th>Email</th>
+                <th>Status</th>
+                <th>Member Since</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for member in members %}
+            <tr>
+                <td>{{ member.member_id }}</td>
+                <td>{{ member.first_name }} {{ member.last_name }}</td>
+                <td>{{ member.email }}</td>
+                <td>
+                    {% if member.status == 'ACTIVE' %}
+                        <span class="badge bg-success">Active</span>
+                    {% else %}
+                        <span class="badge bg-secondary">{{ member.status }}</span>
+                    {% endif %}
+                </td>
+                <td>{{ member.created_at|date:"d M Y" }}</td>
+                <td>
+                    <a href="{% url 'edit_member' member.id %}" class="btn btn-primary btn-sm"><i class="bi bi-pencil-square"></i> Edit</a>
+                    <!-- Optionally, add suspend/activate buttons -->
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6" class="text-center">No members found.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

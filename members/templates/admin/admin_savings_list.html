@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Savings Reports{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <h2 class="mb-4">Savings Reports</h2>
+    
+    <div class="card shadow-sm">
+        <div class="card-header bg-info text-white">
+            <i class="bi bi-piggy-bank-fill me-2"></i>All Savings Accounts
+        </div>
+        <div class="card-body">
+            <p class="text-muted">View and analyze savings balances for all members.</p>
+
+            <!-- Optional: Export buttons -->
+            <div class="mb-3 d-flex gap-2 flex-wrap">
+                <a href="{% url 'export_savings_csv' %}" class="btn btn-outline-success btn-sm">
+                    <i class="bi bi-file-earmark-spreadsheet me-1"></i> Export CSV
+                </a>
+                <a href="{% url 'export_savings_pdf' %}" class="btn btn-outline-primary btn-sm">
+                    <i class="bi bi-file-earmark-pdf me-1"></i> Export PDF
+                </a>
+            </div>
+
+            <!-- Savings Accounts Table -->
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>#</th>
+                            <th>Member ID</th>
+                            <th>Full Name</th>
+                            <th>Email</th>
+                            <th>Account Number</th>
+                            <th>Current Balance</th>
+                            <th>Status</th>
+                            <th>Joined On</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for account in savings_accounts %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td>{{ account.member.member_id }}</td>
+                            <td>{{ account.member.first_name }} {{ account.member.last_name }}</td>
+                            <td>{{ account.member.email }}</td>
+                            <td>{{ account.account_number }}</td>
+                            <td>{{ account.balance|floatformat:2 }}</td>
+                            <td>
+                                {% if account.member.status == "ACTIVE" %}
+                                    <span class="badge bg-success">Active</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ account.member.status }}</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ account.created_at|date:"d M Y" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center text-muted">No savings accounts found.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Optional: Hover effect for table rows -->
+<style>
+    table tbody tr:hover {
+        background-color: #f2f2f2;
+    }
+</style>
+{% endblock %}

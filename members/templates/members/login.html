@@ -150,7 +150,7 @@
       {% endfor %}
     {% endif %}
 
-    <form method="POST" action="{% url 'member_login' %}">
+    <form method="POST" action="{% url 'login' %}">
       {% csrf_token %}
       <label>Username</label>
       <input type="text" name="username" placeholder="Enter username" required />
