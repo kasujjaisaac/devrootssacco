@@ -42,7 +42,7 @@ class MemberUpdateForm(forms.ModelForm):
             'last_name': forms.TextInput(attrs={'class': 'form-control'}),
             'email': forms.EmailInput(attrs={'class': 'form-control'}),
             'phone': forms.TextInput(attrs={'class': 'form-control'}),
-            'status': forms.Select(attrs={'class': 'form-control'}),  # active/suspended
+            'status': forms.Select(attrs={'class': 'form-control'}), 
             'address': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'nok_name': forms.TextInput(attrs={'class': 'form-control'}),
             'nok_phone': forms.TextInput(attrs={'class': 'form-control'}),

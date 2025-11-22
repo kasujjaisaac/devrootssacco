@@ -439,3 +439,15 @@ def mark_notification_read(request, notification_id):
         messages.error(request, "Notification does not exist.")
 
     return redirect('member_dashboard')
+
+@login_required
+@user_passes_test(lambda u: u.is_staff)
+def admin_manage_users(request):
+    admins = User.objects.filter(is_staff=True)
+    return render(request, 'admin/settings/manage_users.html', {'admins': admins})
+
+
+@login_required
+@user_passes_test(is_admin)
+def members_management_home(request):
+    return render(request, "members/members_management_home.html")

@@ -144,17 +144,6 @@
                 </div>
             </div>
 
-            <!-- System Settings -->
-            <div class="col-lg-3 col-md-4 col-sm-6">
-                <div class="card text-center border-secondary h-100" onclick="location.href='{% url 'admin_settings' %}'">
-                    <div class="card-body">
-                        <i class="bi bi-gear text-secondary mb-3"></i>
-                        <h5 class="card-title">System Settings</h5>
-                        <p class="card-text">Manage admin users, roles, and SACCO configurations.</p>
-                    </div>
-                </div>
-            </div>
-
             <!-- Notifications / Alerts -->
             <div class="col-lg-3 col-md-4 col-sm-6">
                 <div class="card text-center border-warning h-100" onclick="location.href='{% url 'admin_notifications' %}'">
@@ -188,6 +177,16 @@
                 </div>
             </div>
 
+    <!-- System Settings -->
+            <div class="col-lg-3 col-md-4 col-sm-6">
+                <div class="card text-center border-secondary h-100" onclick="location.href='{% url 'system_settings' %}'">
+                    <div class="card-body">
+                        <i class="bi bi-gear text-secondary mb-3"></i>
+                        <h5 class="card-title">System Settings</h5>
+                        <p class="card-text">Manage admin users, roles, and SACCO configurations.</p>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 

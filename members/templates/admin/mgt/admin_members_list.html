@@ -1,0 +1,164 @@
+{% extends "admin/base_admin.html" %}
+{% load static %}
+
+{% block title %}Members List{% endblock %}
+
+{% block content %}
+<style>
+    .page-title {
+        font-size: 28px;
+        font-weight: 700;
+        color: #145f3f;
+    }
+
+    .search-box {
+        border-radius: 30px;
+        padding-left: 20px;
+        border: 2px solid #198754;
+    }
+
+    .table-container {
+        background: #fff;
+        padding: 25px;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+
+    table th {
+        background: #198754 !important;
+        color: #fff !important;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    table td {
+        vertical-align: middle;
+        font-size: 15px;
+    }
+
+    .action-btn {
+        padding: 5px 10px;
+        font-size: 13px;
+        border-radius: 8px;
+    }
+
+    .badge-status {
+        padding: 6px 10px;
+        border-radius: 8px;
+        font-size: 13px;
+    }
+</style>
+
+
+<div class="container mt-4 mb-5">
+
+    <!-- Header Area -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="page-title">Members Management</h2>
+        <a href="{% url 'admin_add_member' %}" class="btn btn-success px-4">
+            <i class="bi bi-person-plus"></i> Add Member
+        </a>
+    </div>
+
+    <!-- Search Bar -->
+    <div class="mb-4">
+        <input type="text" id="searchInput" placeholder="Search members..." class="form-control search-box">
+    </div>
+
+    <div class="table-container">
+        <div class="table-responsive">
+            <table class="table table-bordered table-striped" id="membersTable">
+                <thead>
+                    <tr>
+                        <th>#ID</th>
+                        <th>Name</th>
+                        <th>Contact</th>
+                        <th>Date of Birth</th>
+                        <th>Address</th>
+                        <th>Next of Kin</th>
+                        <th>Employer</th>
+                        <th>Status</th>
+                        <th style="width: 120px;">Actions</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for member in members %}
+                    <tr>
+                        <td>{{ member.id }}</td>
+
+                        <td>
+                            <strong>{{ member.first_name }} {{ member.last_name }}</strong><br>
+                            <small class="text-muted">{{ member.email }}</small>
+                        </td>
+
+                        <td>
+                            {{ member.phone }}
+                        </td>
+
+                        <td>{{ member.date_of_birth }}</td>
+
+                        <td>{{ member.address|truncatechars:40 }}</td>
+
+                        <td>
+                            <strong>{{ member.nok_name }}</strong><br>
+                            <small>{{ member.nok_phone }}</small>
+                        </td>
+
+                        <td>
+                            <strong>{{ member.employer_name }}</strong><br>
+                            <small>{{ member.employer_address|truncatechars:40 }}</small>
+                        </td>
+
+                        <td>
+                            {% if member.status == "active" %}
+                                <span class="badge bg-success badge-status">Active</span>
+                            {% else %}
+                                <span class="badge bg-danger badge-status">Inactive</span>
+                            {% endif %}
+                        </td>
+
+                        <td class="text-center">
+                            <a href="{% url 'admin_edit_member' member.id %}" 
+                               class="btn btn-sm btn-outline-success action-btn">
+                                <i class="bi bi-pencil-square"></i>
+                            </a>
+
+                            <a href="{% url 'admin_view_member' member.id %}" 
+                               class="btn btn-sm btn-outline-primary action-btn mt-1">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                        </td>
+
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="9" class="text-center text-muted py-4">
+                            No members found.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<!-- Simple Search Filter -->
+<script>
+    const searchInput = document.getElementById('searchInput');
+    const rows = document.querySelectorAll('#membersTable tbody tr');
+
+    searchInput.addEventListener('keyup', function() {
+        const term = this.value.toLowerCase();
+        
+        rows.forEach(row => {
+            const text = row.innerText.toLowerCase();
+            row.style.display = text.includes(term) ? '' : 'none';
+        });
+    });
+</script>
+
+{% endblock %}

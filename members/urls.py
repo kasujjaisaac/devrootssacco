@@ -30,7 +30,7 @@ urlpatterns = [
     # ADMIN ROUTES
     # ================================
     path('admin/dashboard/', views.admin_dashboard, name='admin_dashboard'),
-    path('admin/settings/', views.system_settings, name='admin_settings'),
+    path('admin/system_settings/', views.system_settings, name='system_settings'),
     path('admin/notifications/', views.admin_notifications, name='admin_notifications'),
     path('admin/activity-logs/', views.admin_activity_logs, name='admin_activity_logs'),
     path('admin/support/', views.admin_support, name='admin_support'),
@@ -53,7 +53,21 @@ urlpatterns = [
     # Reports
     path('admin/savings-reports/', views.savings_reports, name='savings_reports'),
     path('admin/loan-reports/', views.loan_reports, name='admin_loan_reports'),
+
+
+    #members dashboard
+    path("members/management/", views.members_management_home, name="members_management_home"),
+    path("members/add/", views.add_member, name="add_member"),
+    path("members/list/", views.members_list, name="members_list"),
+
+    path('admin/manage-users/', views.admin_manage_users, name='admin_manage_users'),
+    
+    
+    
+
+
 ]
+
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
