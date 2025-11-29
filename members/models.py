@@ -6,6 +6,8 @@ from django.dispatch import receiver
 import uuid
 import random
 import string
+from decimal import Decimal, InvalidOperation
+from django.core.exceptions import ValidationError
 
 # ============================================================
 #                       MEMBER MODEL
@@ -115,8 +117,8 @@ class Member(models.Model):
     # -----------------------------
     # Membership & Savings
     # -----------------------------
-    preferred_saving = models.DecimalField(max_digits=12, decimal_places=2, default=0)
-    membership_fee_paid = models.DecimalField(max_digits=12, decimal_places=2, default=20000)
+    preferred_saving = models.CharField(max_length=50, blank=True)
+    membership_fee_paid = models.DecimalField(max_digits=12, decimal_places=2)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='ACTIVE')
 
     # -----------------------------
@@ -171,6 +173,7 @@ class SavingAccount(models.Model):
 
 class SavingTransaction(models.Model):
     """Individual deposit or withdrawal linked to a SavingAccount."""
+
     TRANSACTION_TYPE_CHOICES = [
         ('DEPOSIT', 'Deposit'),
         ('WITHDRAWAL', 'Withdrawal'),
@@ -183,20 +186,27 @@ class SavingTransaction(models.Model):
     balance_after_transaction = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     description = models.TextField(blank=True)
 
+    def clean(self):
+        if self.amount <= 0:
+            raise ValidationError("Transaction amount must be greater than zero.")
+        if self.transaction_type == 'WITHDRAWAL' and self.amount > self.account.balance:
+            raise ValidationError("Insufficient balance for withdrawal.")
+
     def save(self, *args, **kwargs):
-        """Update account balance automatically on save."""
         if not self.pk:  # Only on creation
+            amount = Decimal(self.amount)
             if self.transaction_type == 'DEPOSIT':
-                self.balance_after_transaction = self.account.balance + self.amount
-                self.account.balance += self.amount
+                self.balance_after_transaction = self.account.balance + amount
+                self.account.balance += amount
             else:  # Withdrawal
-                self.balance_after_transaction = self.account.balance - self.amount
-                self.account.balance -= self.amount
+                self.balance_after_transaction = self.account.balance - amount
+                self.account.balance -= amount
             self.account.save()
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.transaction_type} - {self.amount} on {self.transaction_date.strftime('%Y-%m-%d')}"
+        return f"{self.transaction_type} - {self.amount} on {self.transaction_date.strftime('%Y-%m-%d %H:%M')}"
+
 
 # ============================================================
 #                 USER ACTIVITY LOG
@@ -292,14 +302,14 @@ class Loan(models.Model):
 
 
 class LoanRepayment(models.Model):
-    """Represents a repayment made towards a loan."""
     loan = models.ForeignKey(Loan, on_delete=models.CASCADE, related_name='repayments')
     amount_paid = models.DecimalField(max_digits=12, decimal_places=2)
+    receipt = models.FileField(upload_to='loan_receipts/', blank=True, null=True,
+                               help_text="Upload bank receipt (PDF, JPG, PNG)")
     date_paid = models.DateField(auto_now_add=True)
     balance_after_payment = models.DecimalField(max_digits=12, decimal_places=2, default=0)
 
     def save(self, *args, **kwargs):
-        """Update loan balance and status on repayment."""
         if not self.pk:
             self.balance_after_payment = self.loan.current_balance - self.amount_paid
             self.loan.current_balance -= self.amount_paid
@@ -312,13 +322,10 @@ class LoanRepayment(models.Model):
     def __str__(self):
         return f"{self.loan.member.first_name} paid {self.amount_paid} on {self.date_paid}"
 
-
 class LoanGuarantor(models.Model):
-    """Represents a guarantor for a member's loan."""
     loan = models.ForeignKey(Loan, on_delete=models.CASCADE, related_name='guarantors')
     guarantor = models.ForeignKey(Member, on_delete=models.CASCADE)
 
-    # Helper methods
     def guarantor_name(self):
         return f"{self.guarantor.first_name} {self.guarantor.last_name}"
 
@@ -330,4 +337,3 @@ class LoanGuarantor(models.Model):
 
     def __str__(self):
         return f"{self.guarantor.first_name} guarantees {self.loan.member.first_name}"
-

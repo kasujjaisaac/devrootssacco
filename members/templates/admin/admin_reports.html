@@ -1,0 +1,177 @@
+{% extends 'admin_base.html' %}
+{% load static %}
+{% block title %}Sacco Reports{% endblock %}
+
+{% block content %}
+
+<style>
+    .report-card {
+        border: 0;
+        color: white;
+        border-radius: 14px;
+        padding: 18px;
+        background: linear-gradient(135deg, #0d8a4c, #1dbb72);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        transition: 0.3s;
+    }
+    .report-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22);
+    }
+    .section-title {
+        font-weight: 700;
+        border-left: 5px solid #198754;
+        padding-left: 12px;
+        margin-bottom: 18px;
+        color: #198754;
+    }
+    #transactionsTable thead {
+        background: linear-gradient(135deg, #0d8a4c, #1dbb72);
+        color: white;
+    }
+    #transactionsTable tbody tr:hover {
+        background: #e8f7ee !important;
+    }
+    .chart-card {
+        border-radius: 14px !important;
+        border: 0 !important;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+</style>
+
+<div class="container mt-4">
+
+    <h2 class="mb-4 text-success fw-bold">
+        <i class="bi bi-speedometer2 me-2"></i> SACCO Reports Dashboard
+    </h2>
+
+    <!-- ==========================================================
+            SUMMARY CARDS
+    =========================================================== -->
+    <h4 class="section-title">Overall Membership Summary</h4>
+    <div class="row g-4 mb-4">
+        <div class="col-md-3">
+            <div class="report-card">
+                <h6><i class="bi bi-people-fill me-2"></i>Total Members</h6>
+                <p class="fs-3 fw-bold">{{ total_members }}</p>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="report-card">
+                <h6><i class="bi bi-person-check-fill me-2"></i>Active Members</h6>
+                <p class="fs-3 fw-bold">{{ active_members }}</p>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="report-card">
+                <h6><i class="bi bi-person-plus-fill me-2"></i>New This Month</h6>
+                <p class="fs-3 fw-bold">{{ new_members_month }}</p>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="report-card">
+                <h6><i class="bi bi-wallet-fill me-2"></i>Membership Fees</h6>
+                <p class="fs-3 fw-bold">UGX {{ membership_fees }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================================
+            SAVINGS & LOANS
+    =========================================================== -->
+    <h4 class="section-title">Savings & Loan Performance</h4>
+    <div class="row g-4 mb-4">
+        <div class="col-md-3">
+            <div class="report-card">
+                <h6><i class="bi bi-piggy-bank-fill me-2"></i>Total Savings</h6>
+                <p class="fs-3 fw-bold">UGX {{ total_savings }}</p>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="report-card">
+                <h6><i class="bi bi-cash-stack me-2"></i>Total Loans Granted</h6>
+                <p class="fs-3 fw-bold">UGX {{ total_loans }}</p>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="report-card">
+                <h6><i class="bi bi-journal-minus me-2"></i>Outstanding Loans</h6>
+                <p class="fs-3 fw-bold">UGX {{ outstanding_loans }}</p>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="report-card">
+                <h6><i class="bi bi-cash-coin me-2"></i>Loan Repayments</h6>
+                <p class="fs-3 fw-bold">UGX {{ loan_repayments }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================================
+            PROFITS + TOTAL MONEY + CHART
+    =========================================================== -->
+    <h4 class="section-title">Financial Performance</h4>
+    <div class="row g-4 mb-4">
+
+        <div class="col-md-4">
+            <div class="report-card">
+                <h6><i class="bi bi-graph-up-arrow me-2"></i>Profits Made</h6>
+                <p class="fs-2 fw-bold">UGX {{ profits_made }}</p>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="report-card">
+                <h6><i class="bi bi-bank me-2"></i>Total SACCO Money</h6>
+                <p class="fs-2 fw-bold">UGX {{ total_sacco_money }}</p>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card chart-card p-3">
+                <h6 class="fw-bold text-success">
+                    <i class="bi bi-bar-chart-line me-2"></i>Savings Growth
+                </h6>
+                <canvas id="savingsGrowthChart"></canvas>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+
+    // Savings Growth Chart
+    new Chart(document.getElementById('savingsGrowthChart'), {
+        type: 'line',
+        data: {
+            labels: [{% for m in months %}'{{ m }}',{% endfor %}],
+            datasets: [{
+                label: 'Savings Growth',
+                data: [{{ savings_growth|join:", " }}],
+                borderColor: '#198754',
+                backgroundColor: 'rgba(25, 135, 84, 0.25)',
+                fill: true,
+                tension: 0.4,
+                borderWidth: 3
+            }]
+        }
+    });
+
+    $('#transactionsTable').DataTable();
+});
+</script>
+{% endblock %}

@@ -47,8 +47,8 @@ def update_loan_balance_on_delete(sender, instance, **kwargs):
 def create_member_accounts(sender, instance, created, **kwargs):
     if created:
 
-        # Create Saving Account for the member
-        SavingAccount.objects.create(member=instance)
+        # Create Saving Account for the member only if it doesn't exist
+        SavingAccount.objects.get_or_create(member=instance)
 
         # Create system user if not existing
         if not instance.user:
@@ -64,7 +64,7 @@ def create_member_accounts(sender, instance, created, **kwargs):
             )
 
             # Assign Member group
-            member_group, created_grp = Group.objects.get_or_create(name='Member')
+            member_group, _ = Group.objects.get_or_create(name='Member')
             user.groups.add(member_group)
 
             instance.user = user

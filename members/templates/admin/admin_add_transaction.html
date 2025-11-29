@@ -1,0 +1,33 @@
+{% extends 'admin_base.html' %}
+{% block title %}Add Transaction{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h3>Add Transaction for {{ account.member.first_name }} {{ account.member.last_name }}</h3>
+
+    <form method="POST">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label for="transaction_type" class="form-label">Transaction Type</label>
+            <select name="transaction_type" id="transaction_type" class="form-select" required>
+                <option value="">Select type</option>
+                <option value="DEPOSIT">Deposit</option>
+                <option value="WITHDRAWAL">Withdrawal</option>
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label for="amount" class="form-label">Amount</label>
+            <input type="number" name="amount" step="0.01" class="form-control" id="amount" required>
+        </div>
+
+        <div class="mb-3">
+            <label for="description" class="form-label">Description</label>
+            <textarea name="description" id="description" class="form-control" rows="3"></textarea>
+        </div>
+
+        <button type="submit" class="btn btn-success">Add Transaction</button>
+        <a href="{% url 'admin_savings_list' %}" class="btn btn-secondary">Back</a>
+    </form>
+</div>
+{% endblock %}

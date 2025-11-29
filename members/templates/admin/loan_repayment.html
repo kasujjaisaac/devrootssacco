@@ -1,0 +1,72 @@
+{% extends 'admin_base.html' %}
+{% load static %}
+
+{% block title %}Loan Repayments{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card shadow">
+        <div class="card-header bg-success text-white">
+            <h4 class="mb-0">Loan Repayments - {{ loan.id }}</h4>
+        </div>
+
+        <div class="card-body">
+            <!-- Loan Details -->
+            <h5>Loan Details</h5>
+            <ul>
+                <li>Member: {{ loan.member.first_name }} {{ loan.member.last_name }} ({{ loan.member.member_id }})</li>
+                <li>Principal: {{ loan.principal_amount }}</li>
+                <li>Current Balance: {{ loan.current_balance }}</li>
+                <li>Status: {{ loan.status }}</li>
+                <li>Start Date: {{ loan.start_date }}</li>
+                <li>End Date: {{ loan.end_date }}</li>
+            </ul>
+
+            <hr>
+            <!-- Add Repayment Form -->
+            <h5>Add Repayment</h5>
+            <form method="POST" enctype="multipart/form-data" class="mb-4">
+                {% csrf_token %}
+                {{ form.as_p }}
+                <button class="btn btn-success">Add Payment</button>
+            </form>
+
+            <hr>
+            <!-- Repayment History -->
+            <h5>Repayment History</h5>
+            <table class="table table-bordered table-striped">
+                <thead class="table-success">
+                    <tr>
+                        <th>#</th>
+                        <th>Date Paid</th>
+                        <th>Amount Paid</th>
+                        <th>Payment Method</th>
+                        <th>Receipt</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for repayment in repayments %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td>{{ repayment.date_paid }}</td>
+                            <td>{{ repayment.amount_paid }}</td>
+                            <td>{{ repayment.payment_method }}</td>
+                            <td>
+                                {% if repayment.receipt %}
+                                    <a href="{{ repayment.receipt.url }}" target="_blank">View</a>
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center">No repayments yet.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

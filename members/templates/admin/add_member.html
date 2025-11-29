@@ -1,33 +1,71 @@
-<!-- Page Title -->
-<h2>Add New Member</h2>
+{% extends "admin_base.html" %}
+{% load static %}
+{% load widget_tweaks %}
 
-<!-- 
-    The form tag defines a form that will send data to the server.
-    method="POST" → this tells the form to send data securely (POST request).
-    enctype="multipart/form-data" → required if your form uploads files
-    (e.g., profile photos, documents).
--->
-<form method="POST" enctype="multipart/form-data">
+{% block title %}Add Member{% endblock %}
 
-    <!-- 
-        CSRF token is a security feature that Django uses to prevent malicious attacks.
-        Every POST form in Django MUST include {% csrf_token %}.
-    -->
-    {% csrf_token %}
+{% block content %}
+<div class="container-fluid py-4">
+    <h2 class="fw-bold mb-4">Add Member</h2>
 
-    <!-- 
-        This renders your Django form fields automatically,
-        wrapped inside <p> tags for simple structure.
-        Example (depending on your form):
-        <p>First name: <input type="text" ... ></p>
-        <p>Last name: <input type="text" ... ></p>
-        <p>Upload Photo: <input type="file" ... ></p>
-    -->
-    {{ form.as_p }}
+    <!-- Django success/error messages -->
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
 
-    <!-- Submit Button -->
-    <button type="submit">Add Member</button>
-</form>
+    <!-- Temp username & password info -->
+    {% if temp_pass_info %}
+    <div class="card border-info mb-4">
+        <div class="card-header bg-info text-white fw-bold">
+            Account Details
+        </div>
+        <div class="card-body">
+            <p><strong>{{ temp_pass_info }}</strong></p>
+            <button class="btn btn-sm btn-outline-primary" onclick="copyTempInfo()">Copy Credentials</button>
+        </div>
+    </div>
 
-<!-- A link to the page that shows all registered members -->
-<a href="{% url 'members_list' %}">View All Members</a>
+    <script>
+        function copyTempInfo() {
+            const text = `{{ temp_pass_info }}`;
+            navigator.clipboard.writeText(text).then(() => {
+                alert('Credentials copied to clipboard!');
+            });
+        }
+    </script>
+    {% endif %}
+
+    <form method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="row">
+            {% for field in form %}
+            <div class="col-md-4 mb-3">
+                <label class="form-label fw-bold">{{ field.label_tag }}</label>
+
+                {% if field.errors %}
+                    {{ field|add_class:"form-control is-invalid" }}
+                {% else %}
+                    {{ field|add_class:"form-control" }}
+                {% endif %}
+
+                {% if field.help_text %}
+                    <small class="text-muted">{{ field.help_text }}</small>
+                {% endif %}
+
+                {% for error in field.errors %}
+                    <div class="text-danger small">{{ error }}</div>
+                {% endfor %}
+            </div>
+            {% endfor %}
+        </div>
+        <button type="submit" class="btn btn-success mt-3">
+            <i class="bi bi-save me-1"></i> Add Member
+        </button>
+    </form>
+</div>
+{% endblock %}

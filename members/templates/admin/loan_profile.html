@@ -1,0 +1,142 @@
+{% extends 'admin_base.html' %}
+{% load static %}
+
+{% block title %}Loan Profile{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+
+    <!-- Loan Summary Stats -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center shadow-sm p-2 bg-light">
+                <h6>Total Repayments</h6>
+                <p class="fs-5 text-success">{{ repayments.count }}</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center shadow-sm p-2 bg-light">
+                <h6>Total Paid</h6>
+                <p class="fs-5 text-success">${{ total_paid }}</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center shadow-sm p-2 bg-light">
+                <h6>Remaining Balance</h6>
+                <p class="fs-5 text-success">${{ loan.current_balance }}</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center shadow-sm p-2 bg-light">
+                <h6>Status</h6>
+                {% if loan.status == 'approved' %}
+                    <span class="badge bg-success">{{ loan.status|capfirst }}</span>
+                {% elif loan.status == 'pending' %}
+                    <span class="badge bg-warning text-dark">{{ loan.status|capfirst }}</span>
+                {% elif loan.status == 'paid' %}
+                    <span class="badge bg-secondary">{{ loan.status|capfirst }}</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Member & Loan Info -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card shadow-sm mb-3">
+                <div class="card-header bg-success text-white">
+                    Member Information
+                </div>
+                <div class="card-body">
+                    <p><strong>Name:</strong> {{ member.first_name }} {{ member.last_name }}</p>
+                    <p><strong>Member ID:</strong> {{ member.member_id }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card shadow-sm mb-3">
+                <div class="card-header bg-success text-white">
+                    Loan Information
+                </div>
+                <div class="card-body">
+                    <p><strong>Loan ID:</strong> {{ loan.loan_id }}</p>
+                    <p><strong>Amount:</strong> ${{ loan.principal_amount }}</p>
+                    <p><strong>Current Balance:</strong> ${{ loan.current_balance }}</p>
+                    <p><strong>Start Date:</strong> {{ loan.start_date }}</p>
+                    <p><strong>Monthly Interest:</strong> ${{ monthly_interest }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Guarantors -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-success text-white">
+            Guarantors
+        </div>
+        <div class="card-body">
+            <ul>
+                {% for g in guarantors %}
+                    <li>{{ g.guarantor.first_name }} {{ g.guarantor.last_name }}</li>
+                {% empty %}
+                    <li>No guarantors assigned.</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+
+    <!-- Repayments -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+            <span>Repayments</span>
+            <a href="{% url 'loan_repayment' loan.id %}" class="btn btn-sm btn-light text-success">Add Repayment</a>
+        </div>
+        <div class="card-body">
+            <p>
+                <a class="btn btn-outline-success mb-2" data-bs-toggle="collapse" href="#repaymentsTable" role="button" aria-expanded="false" aria-controls="repaymentsTable">
+                    Show/Hide Repayments
+                </a>
+            </p>
+            <div class="collapse show" id="repaymentsTable">
+                <table class="table table-bordered table-striped">
+                    <thead class="table-success">
+                        <tr>
+                            <th>Date Paid</th>
+                            <th>Amount Paid</th>
+                            <th>Balance After Payment</th>
+                            <th>Receipt</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for r in repayments %}
+                        <tr>
+                            <td>{{ r.date_paid }}</td>
+                            <td class="text-success">${{ r.amount_paid }}</td>
+                            <td class="text-success">${{ r.balance_after_payment }}</td>
+                            <td>
+                                {% if r.receipt %}
+                                    <a href="{{ r.receipt.url }}" target="_blank" class="text-success">Download</a>
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center">No repayments made yet.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Back Button -->
+    <div class="text-end mb-4">
+        <a href="{% url 'admin_loans_list' %}" class="btn btn-secondary">Back to Loans</a>
+    </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,68 @@
+{% extends 'admin_base.html' %}
+{% block title %}Savings Profile{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card shadow-sm mb-3">
+                <div class="card-header bg-success text-white">Member Info</div>
+                <div class="card-body">
+                    <p><strong>Name:</strong> {{ saving.member.first_name }} {{ saving.member.last_name }}</p>
+                    <p><strong>Member ID:</strong> {{ saving.member.member_id }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card shadow-sm mb-3">
+                <div class="card-header bg-success text-white">Savings Info</div>
+                <div class="card-body">
+                    <p><strong>Balance:</strong> ${{ saving.balance }}</p>
+                    <p><strong>Account Created:</strong> {{ saving.account_created }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+            <span>Transactions</span>
+            <button class="btn btn-sm btn-light" type="button" data-bs-toggle="collapse" data-bs-target="#transactionsCollapse">
+                Show/Hide
+            </button>
+        </div>
+        <div class="card-body collapse show" id="transactionsCollapse">
+            <table class="table table-bordered table-striped">
+                <thead class="table-success">
+                    <tr>
+                        <th>Date</th>
+                        <th>Type</th>
+                        <th>Amount</th>
+                        <th>Balance After</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for t in transactions %}
+                    <tr>
+                        <td>{{ t.transaction_date }}</td>
+                        <td>{{ t.transaction_type }}</td>
+                        <td>${{ t.amount }}</td>
+                        <td>${{ t.balance_after_transaction }}</td>
+                        <td>{{ t.description }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center">No transactions yet.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="text-end mb-4">
+        <a href="{% url 'admin_savings_list' %}" class="btn btn-secondary">Back to List</a>
+    </div>
+</div>
+{% endblock %}

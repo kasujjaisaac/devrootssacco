@@ -1,0 +1,24 @@
+{% extends 'admin_base.html' %}
+{% block title %}Add Saving Account{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h3>Add New Saving Account</h3>
+
+    <form method="post">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label for="member" class="form-label">Select Member</label>
+            <select class="form-select" name="member" id="member" required>
+                <option value="" selected disabled>Select a member</option>
+                {% for m in members %}
+                <option value="{{ m.id }}">{{ m.first_name }} {{ m.last_name }} ({{ m.member_id }})</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <button type="submit" class="btn btn-success">Add Saving Account</button>
+        <a href="{% url 'admin_savings_list' %}" class="btn btn-secondary">Cancel</a>
+    </form>
+</div>
+{% endblock %}

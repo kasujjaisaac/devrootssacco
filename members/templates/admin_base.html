@@ -1,0 +1,220 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Admin Dashboard{% endblock %}</title>
+
+    <!-- Google Fonts: Poppins -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{% static 'css/admin.css' %}">
+
+    <style>
+        body {
+            background-color: #f8fff8;
+            font-family: 'Poppins', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        /* Navbar */
+        .navbar-green {
+            background-color: #28a745;
+        }
+        .navbar-green .navbar-brand,
+        .navbar-green .text-white {
+            color: #fff !important;
+        }
+
+        /* Sidebar */
+        .sidebar-green {
+            background-color: #e6f4ea;
+            min-height: 100vh;
+            position: sticky;
+            top: 0;
+            padding-top: 1rem;
+            transition: all 0.3s;
+        }
+        .sidebar-green .nav-link {
+            color: #155724;
+            font-weight: 500;
+        }
+        .sidebar-green .nav-link:hover {
+            background-color: #c3e6cb;
+            border-radius: 5px;
+            transform: scale(1.02);
+            transition: all 0.2s;
+        }
+
+        /* Cards */
+        .card {
+            border-radius: 10px;
+        }
+        .card .card-title {
+            font-weight: 600;
+        }
+
+        /* Top buttons */
+        .top-btns .btn {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+        .top-btns .btn:hover {
+            transform: scale(1.05);
+            transition: all 0.2s;
+        }
+
+        /* Logout button */
+        .btn-logout {
+            background-color: #dc3545;
+            color: #fff;
+        }
+        .btn-logout:hover {
+            background-color: #c82333;
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+    <!-- Top Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-green shadow-sm">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{% url 'admin_dashboard' %}">Dashboard</a>
+
+            <div class="d-flex align-items-center ms-auto gap-2 top-btns">
+                <!-- Profile -->
+                <a href="{% url 'member_profile' %}" class="btn btn-outline-light btn-sm">
+                    <i class="bi bi-person-circle"></i> Profile
+                </a>
+
+                <!-- Notifications -->
+                <a href="{% url 'admin_notifications' %}" class="btn btn-outline-light btn-sm position-relative">
+                    <i class="bi bi-bell"></i> Notifications
+                    {% if unread_notifications and unread_notifications > 0 %}
+                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                        {{ unread_notifications }}
+                    </span>
+                    {% endif %}
+                </a>
+
+                <!-- Logout -->
+                <a href="{% url 'logout' %}" class="btn btn-logout btn-sm">
+                    <i class="bi bi-box-arrow-right"></i> Logout
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Layout -->
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <nav id="sidebar" class="col-md-2 d-none d-md-block sidebar-green shadow-sm">
+                <ul class="nav flex-column">
+
+                    <!-- Members Menu -->
+                    <li class="nav-item mb-2">
+                        <a class="nav-link d-flex justify-content-between align-items-center" 
+                           data-bs-toggle="collapse" href="#membersMenu" role="button">
+                           <span><i class="bi bi-people-fill me-2"></i> Members</span>
+                           <i class="bi bi-chevron-down"></i>
+                        </a>
+                        <div class="collapse" id="membersMenu">
+                            <ul class="nav flex-column ms-3">
+                                <li class="nav-item"><a class="nav-link" href="{% url 'admin_members_list' %}">All Members</a></li>
+                                <li class="nav-item"><a class="nav-link" href="{% url 'add_member' %}">Add Member</a></li>
+                            </ul>
+                        </div>
+                    </li>
+
+                    <!-- Loans Menu -->
+                    <li class="nav-item mb-2">
+                        <a class="nav-link d-flex justify-content-between align-items-center" 
+                           data-bs-toggle="collapse" href="#loansMenu" role="button">
+                           <span><i class="bi bi-cash-stack me-2"></i> Loans</span>
+                           <i class="bi bi-chevron-down"></i>
+                        </a>
+                        <div class="collapse" id="loansMenu">
+                            <ul class="nav flex-column ms-3">
+                                <li class="nav-item"><a class="nav-link" href="{% url 'admin_loans_list' %}">Loan List</a></li>
+                                <li class="nav-item"><a class="nav-link" href="{% url 'admin_add_loan' %}">Add Loan</a></li>
+                            </ul>
+                        </div>
+                    </li>
+
+                    <!-- Savings Menu -->
+                    <li class="nav-item mb-2">
+                        <a class="nav-link d-flex justify-content-between align-items-center" 
+                           data-bs-toggle="collapse" href="#savingsMenu" role="button">
+                           <span><i class="bi bi-wallet2 me-2"></i> Savings</span>
+                           <i class="bi bi-chevron-down"></i>
+                        </a>
+                        <div class="collapse" id="savingsMenu">
+                            <ul class="nav flex-column ms-3">
+                                <li class="nav-item"><a class="nav-link" href="{% url 'admin_savings_list' %}">Savings List</a></li>
+                            </ul>
+                        </div>
+                    </li>
+
+                    <!-- Notifications -->
+                    <li class="nav-item mb-2">
+                        <a class="nav-link" href="{% url 'admin_notifications' %}"><i class="bi bi-bell me-2"></i> Notifications</a>
+                    </li>
+
+                    <!-- Reports -->
+                    <li class="nav-item mb-2">
+                        <a class="nav-link" href="{% url 'admin_reports' %}"><i class="bi bi-file-earmark-text me-2"></i> Reports</a>
+                    </li>
+
+                    <!-- Support -->
+                    <li class="nav-item mb-2">
+                        <a class="nav-link" href="{% url 'admin_support' %}"><i class="bi bi-life-preserver me-2"></i> Support</a>
+                    </li>
+
+                </ul>
+            </nav>
+
+            <!-- Main Content -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 py-4">
+                <!-- Welcome Section -->
+                <div class="alert alert-success d-flex align-items-center mb-4" role="alert">
+                    <i class="bi bi-emoji-smile-fill me-2 fs-3"></i>
+                    <div>
+                        Hello, <strong>{{ request.user.get_full_name }}!</strong> 👋
+                        {% block welcome_message %}{% endblock %}
+                    </div>
+                </div>
+
+                <!-- Summary Cards -->
+                <div class="row mb-4">{% block summary_cards %}{% endblock %}</div>
+
+                <!-- Page Content -->
+                {% block content %}{% endblock %}
+            </main>
+        </div>
+    </div>
+
+    <!-- Bootstrap & DataTables JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const table = document.querySelector('#dataTable');
+            if (table) {
+                $(table).DataTable();
+            }
+        });
+    </script>
+</body>
+</html>

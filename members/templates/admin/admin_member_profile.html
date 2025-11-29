@@ -1,0 +1,190 @@
+{% extends "admin_base.html" %}
+{% load static %}
+
+{% block title %}Member Profile{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold text-success">Member Profile</h2>
+        <div>
+            <a href="{% url 'admin_members_list' %}" class="btn btn-outline-success me-2">
+                <i class="bi bi-arrow-left-circle me-1"></i> Back to Members List
+            </a>
+            <button class="btn btn-success" onclick="window.print()">
+                <i class="bi bi-printer me-1"></i> Print PDF
+            </button>
+        </div>
+    </div>
+
+    <!-- Personal Info -->
+    <div class="card shadow-sm mb-4 border-success">
+        <div class="card-header bg-success text-white d-flex align-items-center">
+            <img src="{{ member.profile_pic.url }}" alt="Profile Picture" class="rounded-circle me-3" width="60" height="60">
+            <h5 class="mb-0">{{ member.first_name }} {{ member.last_name }} ({{ member.member_id }})</h5>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <p><strong>Gender:</strong> {{ member.gender }}</p>
+                    <p><strong>Date of Birth:</strong> {{ member.date_of_birth|date:"d M Y" }}</p>
+                    <p><strong>Phone:</strong> {{ member.phone }}</p>
+                    <p><strong>Email:</strong> {{ member.email|default:"N/A" }}</p>
+                </div>
+                <div class="col-md-6">
+                    <p><strong>National ID:</strong> {{ member.national_id }}</p>
+                    <p><strong>Address:</strong> {{ member.address }}</p>
+                    <p><strong>Date Joined:</strong> {{ member.created_at|date:"d M Y" }}</p>
+                    <p><strong>Temporary Password:</strong>
+                        {% if member.temp_password %}
+                            <span class="badge bg-warning text-dark">Yes</span>
+                        {% else %}
+                            <span class="badge bg-success">No</span>
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Next of Kin & Membership Info -->
+    <div class="card shadow-sm mb-4 border-success">
+        <div class="card-header bg-success text-white">
+            <h5 class="mb-0"><i class="bi bi-person-lines-fill me-2"></i>Next of Kin & Membership</h5>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <!-- Next of Kin -->
+                <div class="col-md-6">
+                    <h6 class="fw-bold text-success">Next of Kin</h6>
+                    <p><strong>Name:</strong> {{ member.nok_name }}</p>
+                    <p><strong>Relationship:</strong> {{ member.nok_relationship }}</p>
+                    <p><strong>Phone:</strong> {{ member.nok_phone }}</p>
+                    <p><strong>Email:</strong> {{ member.nok_email|default:"N/A" }}</p>
+                    <p><strong>Address:</strong> {{ member.nok_address|default:"N/A" }}</p>
+                </div>
+
+                <!-- Membership Info -->
+                <div class="col-md-6">
+                    <h6 class="fw-bold text-success">Membership</h6>
+                    <p><strong>Membership Fee Paid:</strong> UGX {{ member.membership_fee_paid|floatformat:2 }}</p>
+                    <p><strong>Preferred Saving:</strong> UGX {{ member.preferred_saving|default:"0.00" }}</p>
+                    <p><strong>Status:</strong>
+                        {% if member.status == "ACTIVE" %}
+                            <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>{{ member.status }}</span>
+                        {% elif member.status == "INACTIVE" %}
+                            <span class="badge bg-secondary"><i class="bi bi-x-circle me-1"></i>{{ member.status }}</span>
+                        {% else %}
+                            <span class="badge bg-warning text-dark"><i class="bi bi-exclamation-circle me-1"></i>{{ member.status }}</span>
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Savings Info -->
+    <div class="card shadow-sm mb-4 border-success">
+        <div class="card-header bg-light text-success">
+            <h5 class="mb-0"><i class="bi bi-wallet2 me-2"></i>Savings Account</h5>
+        </div>
+        <div class="card-body">
+            {% if member.savings_account %}
+                <p><strong>Account Number:</strong> {{ member.savings_account.id }}</p>
+                <p><strong>Current Balance:</strong> UGX {{ member.savings_account.balance|floatformat:2 }}</p>
+
+                <h6 class="fw-bold text-success mt-3">Last 5 Transactions</h6>
+                {% if member.savings_account.transactions.exists %}
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered">
+                            <thead class="table-success">
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Type</th>
+                                    <th>Amount (UGX)</th>
+                                    <th>Balance After Transaction (UGX)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for tx in member.savings_account.transactions.all|dictsortreversed:"transaction_date"|slice:":5" %}
+                                <tr>
+                                    <td>{{ tx.transaction_date|date:"d M Y" }}</td>
+                                    <td>{{ tx.transaction_type }}</td>
+                                    <td>{{ tx.amount|floatformat:2 }}</td>
+                                    <td>{{ tx.balance_after_transaction|floatformat:2 }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-muted">No transactions yet.</p>
+                {% endif %}
+            {% else %}
+                <p class="text-muted">No savings account linked.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Loans Info -->
+    <div class="card shadow-sm mb-4 border-success">
+        <div class="card-header bg-light text-success">
+            <h5 class="mb-0"><i class="bi bi-cash-stack me-2"></i>Loan Information</h5>
+        </div>
+        <div class="card-body">
+            {% if member.loans.exists %}
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped table-hover">
+                        <thead class="table-success">
+                            <tr>
+                                <th>Loan ID</th>
+                                <th>Amount (UGX)</th>
+                                <th>Status</th>
+                                <th>Current Balance (UGX)</th>
+                                <th>Start Date</th>
+                                <th>End Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for loan in member.loans.all %}
+                            <tr>
+                                <td>{{ loan.id }}</td>
+                                <td>{{ loan.principal_amount|floatformat:2 }}</td>
+                                <td>
+                                    {% if loan.status == "pending" %}
+                                        <span class="badge bg-warning text-dark">Pending</span>
+                                    {% elif loan.status == "approved" %}
+                                        <span class="badge bg-success">Approved</span>
+                                    {% elif loan.status == "rejected" %}
+                                        <span class="badge bg-secondary">Rejected</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">{{ loan.status }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ loan.current_balance|floatformat:2 }}</td>
+                                <td>{{ loan.start_date|date:"d M Y" }}</td>
+                                <td>{{ loan.end_date|date:"d M Y" }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p class="text-muted">No loans found for this member.</p>
+            {% endif %}
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Optional: styling adjustments for print
+    window.addEventListener('beforeprint', () => {
+        document.body.style.backgroundColor = "#fff";
+    });
+</script>
+{% endblock %}

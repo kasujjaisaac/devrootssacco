@@ -48,44 +48,48 @@ urlpatterns = [
     # ADMIN DASHBOARD & SETTINGS
     # ============================================
     path('admin/dashboard/', views.admin_dashboard, name='admin_dashboard'),        # Admin home
-    path('admin/system_settings/', views.system_settings, name='system_settings'),  # System configuration
     path('admin/notifications/', views.admin_notifications, name='admin_notifications'),  # Admin notifications
     path('admin/activity-logs/', views.admin_activity_logs, name='admin_activity_logs'),  # User activity logs
     path('admin/support/', views.admin_support, name='admin_support'),              # Admin support tickets
+    path('admin/reports', views.admin_reports, name='admin_reports'),
 
     # ============================================
     # ADMIN MEMBERS MANAGEMENT
     # ============================================
-    path('admin/members/', views.members_list, name='admin_members_list'),                  # List all members
-    path('admin/members/add/', views.add_member, name='admin_add_member'),                 # Add new member
-    path('admin/members/edit/<int:member_id>/', views.edit_member, name='admin_edit_member'),  # Edit member details
+    # Admin Members Management
+    path('admin/members/', views.members_list, name='admin_members_list'),
+    path('admin/members/add/', views.add_member, name='admin_add_member'),
+    path('admin/members/edit/<int:member_id>/', views.edit_member, name='admin_edit_member'),
+    path('admin/members/profile/<int:member_id>/', views.admin_member_profile, name='admin_member_profile'),
 
-    # ============================================
-    # ADMIN SAVINGS MANAGEMENT
-    # ============================================
-    path('admin/savings/', views.savings_list, name='admin_savings_list'),                 # List all savings
 
     # ============================================
     # ADMIN LOAN MANAGEMENT
     # ============================================
-    path('admin/loans/', views.loans_list, name='admin_loans_list'),                       # List all loans
-    path('admin/loan-applications/', views.loan_applications, name='admin_loan_applications'),  # Pending loan applications
-    path('admin/loan/approve/<int:loan_id>/', views.approve_loan, name='admin_approve_loan'),   # Approve a loan
-    path('admin/loan/reject/<int:loan_id>/', views.reject_loan, name='admin_reject_loan'),      # Reject a loan
-    path('admin/loan/repay/<int:loan_id>/', views.record_repayment, name='admin_record_repayment'),  # Record repayment
+    path('admin/loans/', views.loans_list, name="admin_loans_list"),                       # List all loans
+    path("admin/loans/add/", views.add_loan, name="admin_add_loan"),
+    path('admin/loans/<int:loan_id>/', views.loan_profile, name='loan_profile'),
+    path('admin/loans/<int:loan_id>/repay/', views.loan_repayment_view, name='loan_repayment'),
+    
+    # ============================================
+    # ADMIN SAVINGS MANAGEMENT
+    # ============================================
+    path('admin/savings/', views.savings_list, name='admin_savings_list'),                 # List all savings
+    path('admin/savings/add/', views.add_saving, name='admin_add_savings'),
+    path('admin/savings/<int:saving_id>/', views.savings_profile, name='admin_savings_profile'),
 
     # ============================================
-    # ADMIN REPORTS
+    # ADMIN TRANSACTIONS MANAGEMENT
     # ============================================
-    path('admin/savings-reports/', views.savings_reports, name='savings_reports'),        # Savings reports
-    path('admin/loan-reports/', views.loan_reports, name='admin_loan_reports'),          # Loan reports
-
+    path('admin/savings/<int:saving_id>/transaction/add/', views.add_transaction, name='admin_add_transaction'),
+     
     # ============================================
     # MEMBERS MANAGEMENT (GENERAL ROUTES)
     # ============================================
     path("management/", views.members_management_home, name="members_management_home"),  # Members management landing
     path("add/", views.add_member, name="add_member"),                                   # Add member (non-admin route)
     path("list/", views.members_list, name="members_list"),                              # List members (non-admin route)
+  
 
     # ============================================
     # ADMIN USER MANAGEMENT
