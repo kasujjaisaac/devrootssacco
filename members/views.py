@@ -1,72 +1,97 @@
+# ==========================================================
+# IMPORTS
+# ==========================================================
+# Standard libraries
+from datetime import date
+import random
+import string
+
+# Django shortcuts and utilities
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
 from django.contrib.auth.models import User, Group
 from django.contrib import messages
 from django.db.models import Sum
+
+# Forms and models from the app
 from .forms import AdminAddMemberForm, MemberUpdateForm, LoanForm
 from .models import (
-    Member, SavingAccount, SavingTransaction, UserActivityLog, Notification,
-    Loan, LoanRepayment, LoanGuarantor
+    Member, SavingAccount, SavingTransaction,
+    Loan, LoanRepayment, LoanGuarantor,
+    UserActivityLog, Notification
 )
-import random
-import string
-from datetime import date
 
 # ==========================================================
-# Helper: Get Client IP Address
+# HELPER FUNCTIONS
 # ==========================================================
 def get_client_ip(request):
+    """
+    Get the client IP address from the request.
+    Useful for logging user activity.
+    """
     x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
     return x_forwarded_for.split(',')[0] if x_forwarded_for else request.META.get('REMOTE_ADDR')
 
-# ==========================================================
-# Helper: Check Admin Role
-# ==========================================================
+
 def is_admin(user):
+    """
+    Check if a user is an Admin.
+    Admins are either in the 'Admin' group or marked as staff.
+    """
     return user.groups.filter(name="Admin").exists() or user.is_staff
 
 
 # ==========================================================
-# LOGIN (Admin + Member)
+# AUTHENTICATION VIEWS
 # ==========================================================
 def login_view(request):
+    """
+    Handles user login for both Admins and Members.
+    POST: Authenticate user and redirect to the appropriate dashboard.
+    GET: Render the login page.
+    """
     if request.method == 'POST':
         username = request.POST.get('username').strip()
         password = request.POST.get('password')
-
         user = authenticate(request, username=username, password=password)
 
         if user:
             login(request, user)
+            # Redirect Admin users to admin dashboard
+            return redirect('admin_dashboard') if is_admin(user) else redirect('member_dashboard')
 
-            # Redirect Admin
-            if is_admin(user):
-                return redirect('admin_dashboard')
-
-            # Redirect Member
-            return redirect('member_dashboard')
-
+        # Display error if authentication fails
         messages.error(request, "Invalid username or password")
 
     return render(request, 'members/login.html')
 
 
-# ==========================================================
-# LOGOUT
-# ==========================================================
 @login_required
 def logout_view(request):
+    """
+    Logs out the currently logged-in user.
+    Redirects to login page after logout.
+    """
     logout(request)
-    return redirect('login')
+    return redirect('member_login')
 
 
 # ==========================================================
-# ADMIN DASHBOARD
+# ADMIN VIEWS
 # ==========================================================
 @login_required
 @user_passes_test(is_admin)
 def admin_dashboard(request):
+    """
+    Admin dashboard view.
+    Displays statistics such as:
+    - Total members
+    - Active members
+    - Total loans
+    - Pending loans
+    - Total savings balance
+    """
     total_members = Member.objects.count()
     active_members = Member.objects.filter(status='ACTIVE').count()
     total_loans = Loan.objects.count()
@@ -83,36 +108,54 @@ def admin_dashboard(request):
     return render(request, 'admin/admin_dashboard.html', context)
 
 
-
-# ==========================================================
-# ADMIN: Quick Links Views
-# ==========================================================
+# ----------------------------
+# Admin: Quick Links (Notifications, Support, Logs)
+# ----------------------------
 @login_required
 @user_passes_test(is_admin)
 def admin_notifications(request):
+    """
+    View to display all notifications for admin.
+    Sorted by most recent first.
+    """
     notifications = Notification.objects.all().order_by('-timestamp')
     return render(request, 'admin/admin_notifications.html', {'notifications': notifications})
+
 
 @login_required
 @user_passes_test(is_admin)
 def admin_support(request):
-    # For simplicity, assuming support tickets are saved as Notifications
+    """
+    View to display all support tickets for admin.
+    Here, support tickets are represented as notifications with `is_support=True`.
+    """
     support_tickets = Notification.objects.filter(is_support=True).order_by('-timestamp')
     return render(request, 'admin/admin_support.html', {'support_tickets': support_tickets})
+
 
 @login_required
 @user_passes_test(is_admin)
 def admin_activity_logs(request):
+    """
+    View to display all user activity logs for admin monitoring.
+    Sorted by most recent first.
+    """
     logs = UserActivityLog.objects.all().order_by('-timestamp')
     return render(request, 'admin/admin_activity_logs.html', {'logs': logs})
 
 
-# ==========================================================
-# ADMIN: Add Member
-# ==========================================================
+# ----------------------------
+# Admin: Member Management
+# ----------------------------
 @login_required
 @user_passes_test(is_admin)
 def add_member(request):
+    """
+    Add a new member to the system.
+    - Creates Member object
+    - Optionally creates a linked system login for the member
+    - Generates temporary password if new login is created
+    """
     if request.method == "POST":
         form = AdminAddMemberForm(request.POST, request.FILES)
         if form.is_valid():
@@ -120,8 +163,9 @@ def add_member(request):
             member.status = 'ACTIVE'
             member.save()
 
-            # Create system login for member
+            # Automatically create login user if member.user is None
             if not member.user:
+                # Create username: firstname.lastname.last4ofID
                 username = f"{member.first_name.lower()}.{member.last_name.lower()}.{member.member_id[-4:]}"
                 tmp_pass = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
 
@@ -130,44 +174,43 @@ def add_member(request):
                     email=member.email or '',
                     password=tmp_pass,
                     first_name=member.first_name,
-                    last_name=member.last_name,
+                    last_name=member.last_name
                 )
 
-                # Add to Member group
-                member_group, created = Group.objects.get_or_create(name="Member")
+                # Assign member to "Member" group
+                member_group, _ = Group.objects.get_or_create(name="Member")
                 user.groups.add(member_group)
 
+                # Link user to member
                 member.user = user
                 member.temp_password = True
                 member.save()
 
                 messages.success(request, f"Member created: {username} | Temp Password: {tmp_pass}")
 
-            # FIXED URL NAME
             return redirect('admin_members_list')
-
     else:
         form = AdminAddMemberForm()
 
     return render(request, 'members/add_member.html', {'form': form})
 
 
-# ==========================================================
-# ADMIN: List Members
-# ==========================================================
 @login_required
 @user_passes_test(is_admin)
 def members_list(request):
+    """
+    Admin view to list all members.
+    """
     members = Member.objects.all()
     return render(request, 'members/members_list.html', {'members': members})
 
 
-# ==========================================================
-# ADMIN: Edit Member
-# ==========================================================
 @login_required
 @user_passes_test(is_admin)
 def edit_member(request, member_id):
+    """
+    Admin view to edit a specific member's details.
+    """
     member = get_object_or_404(Member, id=member_id)
 
     if request.method == "POST":
@@ -175,22 +218,22 @@ def edit_member(request, member_id):
         if form.is_valid():
             form.save()
             messages.success(request, f"{member.first_name} updated successfully!")
-
-            # FIXED URL NAME
             return redirect('admin_members_list')
-
     else:
         form = MemberUpdateForm(instance=member)
 
     return render(request, 'members/edit_member.html', {'form': form, 'member': member})
 
 
-# ==========================================================
-# ADMIN: Loan Management
-# ==========================================================
+# ----------------------------
+# Admin: Loan Management
+# ----------------------------
 @login_required
 @user_passes_test(is_admin)
 def loan_applications(request):
+    """
+    View pending loan applications for admin review.
+    """
     loans = Loan.objects.filter(status='pending').order_by('-start_date')
     return render(request, 'admin/loan_applications.html', {'loans': loans})
 
@@ -198,6 +241,9 @@ def loan_applications(request):
 @login_required
 @user_passes_test(is_admin)
 def loans_list(request):
+    """
+    Admin view for listing all loans in the system.
+    """
     loans = Loan.objects.all().order_by('-start_date')
     return render(request, 'admin/loans_list.html', {'loans': loans})
 
@@ -205,73 +251,58 @@ def loans_list(request):
 @login_required
 @user_passes_test(is_admin)
 def approve_loan(request, loan_id):
+    """
+    Approve a specific loan.
+    """
     loan = get_object_or_404(Loan, id=loan_id)
     loan.status = 'approved'
     loan.save()
     messages.success(request, f"Loan approved for {loan.member.first_name}")
     return redirect('admin_loan_applications')
 
-# Loan applications list
-@login_required
-@user_passes_test(is_admin)
-def admin_loan_applications_list(request):
-    """
-    Display all pending loan applications for admin to review.
-    """
-    loans = Loan.objects.filter(status='pending').order_by('-start_date')
-    context = {
-        'loans': loans
-    }
-    return render(request, 'admin/admin_loan_applications_list.html', context)
 
 @login_required
 @user_passes_test(is_admin)
 def reject_loan(request, loan_id):
+    """
+    Reject a specific loan.
+    """
     loan = get_object_or_404(Loan, id=loan_id)
     loan.status = 'rejected'
     loan.save()
     messages.success(request, f"Loan rejected for {loan.member.first_name}")
-
-    # FIXED URL NAME
     return redirect('admin_loan_applications')
 
 
 @login_required
 @user_passes_test(is_admin)
 def record_repayment(request, loan_id):
+    """
+    Record a repayment for a loan.
+    Ensures amount is valid and within loan balance.
+    """
     loan = get_object_or_404(Loan, id=loan_id)
 
     if request.method == "POST":
         amount = float(request.POST.get('amount'))
-
         if 0 < amount <= loan.current_balance:
             LoanRepayment.objects.create(loan=loan, amount_paid=amount)
             messages.success(request, "Repayment recorded")
         else:
             messages.error(request, "Invalid repayment amount")
 
-        # FIXED URL NAME
         return redirect('admin_loans_list')
 
     return render(request, 'admin/record_repayment.html', {'loan': loan})
 
 
-# ==========================================================
-# ADMIN: Guarantors
-# ==========================================================
-@login_required
-@user_passes_test(is_admin)
-def guarantors_list(request):
-    guarantors = LoanGuarantor.objects.all()
-    return render(request, 'admin/guarantors_list.html', {'guarantors': guarantors})
-
-
-# ==========================================================
-# ADMIN: Savings & Reports
-# ==========================================================
+# ----------------------------
+# Admin: Savings & Reports
+# ----------------------------
 @login_required
 @user_passes_test(is_admin)
 def savings_list(request):
+    """List all savings accounts."""
     accounts = SavingAccount.objects.all()
     return render(request, 'admin/savings_list.html', {'accounts': accounts})
 
@@ -279,6 +310,7 @@ def savings_list(request):
 @login_required
 @user_passes_test(is_admin)
 def loan_reports(request):
+    """View all loans for reporting purposes."""
     loans = Loan.objects.all()
     return render(request, 'admin/loan_reports.html', {'loans': loans})
 
@@ -286,42 +318,46 @@ def loan_reports(request):
 @login_required
 @user_passes_test(is_admin)
 def savings_reports(request):
+    """View all savings for reporting purposes."""
     accounts = SavingAccount.objects.all()
     return render(request, 'admin/savings_reports.html', {'accounts': accounts})
 
 
-# ==========================================================
-# ADMIN: System Settings
-# ==========================================================
 @login_required
 @user_passes_test(is_admin)
 def system_settings(request):
+    """System settings page for admin."""
     admins = User.objects.filter(is_staff=True)
     groups = Group.objects.all()
     return render(request, 'admin/system_settings.html', {'admins': admins, 'groups': groups})
 
 
 # ==========================================================
-# MEMBER DASHBOARD
+# MEMBER VIEWS
 # ==========================================================
 @login_required
 def member_dashboard(request):
-    member = request.user.member
+    """
+    Member dashboard view.
+    Shows:
+    - Savings account and transactions
+    - Recent activity logs
+    - Loans, guarantors, repayments, interest
+    """
+    try:
+        member = request.user.member
+    except Member.DoesNotExist:
+        return redirect('add_member')  # Member profile missing
 
-    # Savings Data
-    account = getattr(member, 'savings_account', None)
+    # Savings account & transactions
+    account = getattr(member, 'savingaccount', None)
     transactions = account.transactions.order_by('-transaction_date') if account else []
-    recent_balance = (
-        transactions.first().balance_after_transaction
-        if transactions
-        else account.balance if account else 0
-    )
+    recent_balance = transactions.last().balance_after_transaction if transactions else 0.0
 
-    logs = UserActivityLog.objects.filter(member=member).order_by('-timestamp')[:5]
-    unread_count = member.notifications.filter(is_read=False).count()
-    notifications = member.notifications.order_by('-timestamp')[:5]
+    # Activity logs
+    recent_logs = UserActivityLog.objects.filter(member=member).order_by('-timestamp')[:5] if member else []
 
-    # Loan data
+    # Loan info
     loan = Loan.objects.filter(member=member).order_by('-start_date').first()
     guarantors = LoanGuarantor.objects.filter(loan=loan) if loan else None
     repayments = LoanRepayment.objects.filter(loan=loan).order_by('-date_paid') if loan else None
@@ -332,9 +368,7 @@ def member_dashboard(request):
         'account': account,
         'transactions': transactions,
         'recent_balance': recent_balance,
-        'recent_logs': logs,
-        'unread_notifications_count': unread_count,
-        'recent_notifications': notifications,
+        'recent_logs': recent_logs,
         'loan': loan,
         'guarantors': guarantors,
         'repayments': repayments,
@@ -343,19 +377,18 @@ def member_dashboard(request):
     return render(request, 'members/member_dashboard.html', context)
 
 
-# ==========================================================
-# MEMBER: Profile
-# ==========================================================
 @login_required
 def member_profile(request):
+    """Display member profile."""
     return render(request, 'members/member_profile.html', {'member': request.user.member})
 
 
-# ==========================================================
-# MEMBER: Change Password
-# ==========================================================
 @login_required
 def change_password(request):
+    """
+    Allow members to change their password.
+    Validates current password and matching new passwords.
+    """
     user = request.user
     member = getattr(user, 'member', None)
 
@@ -373,22 +406,20 @@ def change_password(request):
             user.save()
             update_session_auth_hash(request, user)
 
+            # Disable temp password flag
             if member and member.temp_password:
                 member.temp_password = False
                 member.save()
 
             messages.success(request, "Password successfully changed")
-
             return redirect('member_dashboard')
 
     return render(request, 'members/change_password.html')
 
 
-# ==========================================================
-# MEMBER: Loans, Savings, Transactions, Support
-# ==========================================================
 @login_required
 def member_loans(request):
+    """Display member's loans, guarantors, repayments, and monthly interest."""
     member = request.user.member
     loan = Loan.objects.filter(member=member).order_by('-start_date').first()
     guarantors = LoanGuarantor.objects.filter(loan=loan) if loan else None
@@ -407,29 +438,30 @@ def member_loans(request):
 
 @login_required
 def member_savings(request):
+    """Display member's savings account info."""
     member = request.user.member
-    account = getattr(member, 'savings_account', None)
+    account = getattr(member, 'savingaccount', None)
     return render(request, 'members/member_savings.html', {'member': member, 'account': account})
 
 
 @login_required
 def member_transactions(request):
+    """Display member's transaction history."""
     member = request.user.member
-    account = getattr(member, 'savings_account', None)
+    account = getattr(member, 'savingaccount', None)
     transactions = account.transactions.order_by('-transaction_date') if account else []
     return render(request, 'members/member_transactions.html', {'transactions': transactions})
 
 
 @login_required
 def member_support(request):
+    """Display member support page."""
     return render(request, 'members/member_support.html', {'member': request.user.member})
 
 
-# ==========================================================
-# AJAX: Mark Notification As Read
-# ==========================================================
 @login_required
 def mark_notification_read(request, notification_id):
+    """Mark a specific notification as read for the logged-in member."""
     member = request.user.member
     try:
         notification = Notification.objects.get(id=notification_id, member=member)
@@ -437,17 +469,25 @@ def mark_notification_read(request, notification_id):
         notification.save()
     except Notification.DoesNotExist:
         messages.error(request, "Notification does not exist.")
-
     return redirect('member_dashboard')
 
+
+# ==========================================================
+# ADMIN: Manage Users
+# ==========================================================
 @login_required
 @user_passes_test(lambda u: u.is_staff)
 def admin_manage_users(request):
+    """View for admin to manage system users."""
     admins = User.objects.filter(is_staff=True)
     return render(request, 'admin/settings/manage_users.html', {'admins': admins})
 
 
+# ==========================================================
+# MEMBERS MANAGEMENT HOME
+# ==========================================================
 @login_required
 @user_passes_test(is_admin)
 def members_management_home(request):
+    """Landing page for members management."""
     return render(request, "members/members_management_home.html")

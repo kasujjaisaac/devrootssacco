@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Pending Loan Applications{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <h2 class="mb-4">Pending Loan Applications</h2>
+
+    <!-- Success/Error Messages -->
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="card shadow-sm">
+        <div class="card-header bg-warning text-dark">
+            <i class="bi bi-journal-check me-2"></i>Loan Applications Pending Approval
+        </div>
+        <div class="card-body table-responsive">
+            {% if loans %}
+                <table class="table table-hover table-striped align-middle">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>#</th>
+                            <th>Member Name</th>
+                            <th>Member ID</th>
+                            <th>Loan Amount</th>
+                            <th>Purpose</th>
+                            <th>Start Date</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for loan in loans %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td>{{ loan.member.first_name }} {{ loan.member.last_name }}</td>
+                            <td>{{ loan.member.member_id }}</td>
+                            <td>{{ loan.principal_amount|floatformat:2 }}</td>
+                            <td>{{ loan.purpose }}</td>
+                            <td>{{ loan.start_date|date:"d M Y" }}</td>
+                            <td>
+                                <span class="badge bg-warning text-dark">{{ loan.status|capfirst }}</span>
+                            </td>
+                            <td>
+                                <a href="{% url 'approve_loan' loan.id %}" class="btn btn-success btn-sm mb-1">
+                                    <i class="bi bi-check-circle me-1"></i> Approve
+                                </a>
+                                <a href="{% url 'reject_loan' loan.id %}" class="btn btn-danger btn-sm mb-1">
+                                    <i class="bi bi-x-circle me-1"></i> Reject
+                                </a>
+                                <a href="{% url 'loan_details' loan.id %}" class="btn btn-info btn-sm mb-1">
+                                    <i class="bi bi-eye me-1"></i> View
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p class="text-muted">There are no pending loan applications at this moment.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Optional: table hover effect -->
+<style>
+    table tbody tr:hover {
+        background-color: #f1f1f1;
+    }
+</style>
+
+{% endblock %}

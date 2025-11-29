@@ -8,11 +8,23 @@ import random
 import string
 
 # ============================================================
-#                      MEMBER MODEL
+#                       MEMBER MODEL
 # ============================================================
+
 class Member(models.Model):
+    """
+    Model representing a SACCO member.
+    Each member may have a linked User account for authentication.
+    """
+
+    # -----------------------------
+    # User Account (optional)
+    # -----------------------------
     user = models.OneToOneField(User, on_delete=models.CASCADE, null=True, blank=True)
 
+    # -----------------------------
+    # Choices for member fields
+    # -----------------------------
     STATUS_CHOICES = [
         ('PENDING', 'Pending Approval'),
         ('ACTIVE', 'Active'),
@@ -48,18 +60,18 @@ class Member(models.Model):
         ('Above 1,000,000', 'Above 1,000,000'),
     ]
 
-    # Profile Picture
+    # -----------------------------
+    # Profile & KYC
+    # -----------------------------
     profile_pic = models.ImageField(upload_to="profile_pics/", default="default-avatar.png",
                                     null=True, blank=True)
+    national_id_copy = models.FileField(upload_to='national_ids/', blank=True, null=True,
+                                        help_text='Upload National ID copy (PDF, PNG, JPG, JPEG).')
+    member_id = models.CharField(max_length=20, unique=True, blank=True)  # Auto-generated
 
-    # National ID copy
-    national_id_copy = models.FileField(upload_to='national_ids/', blank=True,
-                                        null=True, help_text='Upload National ID copy (PDF, PNG, JPG, JPEG).')
-
-    # Auto-generated Member ID
-    member_id = models.CharField(max_length=20, unique=True, blank=True)
-
-    # Personal info
+    # -----------------------------
+    # Personal Information
+    # -----------------------------
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)
     gender = models.CharField(max_length=20, choices=GENDER_CHOICES)
@@ -69,13 +81,17 @@ class Member(models.Model):
     district_of_birth = models.CharField(max_length=50, blank=True)
     tribe = models.CharField(max_length=50, blank=True)
 
-    # Contact
+    # -----------------------------
+    # Contact Information
+    # -----------------------------
     phone = models.CharField(max_length=20)
     email = models.EmailField(blank=True, null=True)
     address = models.TextField()
     preferred_contact = models.CharField(max_length=20, choices=COMMUNICATION_CHOICES, blank=True)
 
-    # KYC / Employment
+    # -----------------------------
+    # Employment & KYC
+    # -----------------------------
     national_id = models.CharField(max_length=20, unique=True)
     occupation = models.CharField(max_length=100, blank=True, null=True)
     employment_status = models.CharField(max_length=50, blank=True)
@@ -87,24 +103,32 @@ class Member(models.Model):
     source_of_income = models.CharField(max_length=50, blank=True)
     tin_number = models.CharField(max_length=50, blank=True, null=True)
 
+    # -----------------------------
     # Next of Kin
+    # -----------------------------
     nok_name = models.CharField(max_length=100)
     nok_relationship = models.CharField(max_length=50)
     nok_phone = models.CharField(max_length=20)
     nok_email = models.EmailField(blank=True, null=True)
     nok_address = models.TextField(blank=True)
 
+    # -----------------------------
     # Membership & Savings
+    # -----------------------------
     preferred_saving = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     membership_fee_paid = models.DecimalField(max_digits=12, decimal_places=2, default=20000)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='ACTIVE')
 
-    # System Info
+    # -----------------------------
+    # System fields
+    # -----------------------------
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     temp_password = models.BooleanField(default=True)
 
-    # Auto-generate Member ID
+    # -----------------------------
+    # Save override: Auto-generate member_id
+    # -----------------------------
     def save(self, *args, **kwargs):
         if not self.member_id:
             year = datetime.now().year
@@ -112,23 +136,31 @@ class Member(models.Model):
             self.member_id = f"DEV-{year}-{unique_number}"
         super().save(*args, **kwargs)
 
+    # -----------------------------
+    # String representation
+    # -----------------------------
     def __str__(self):
         return f"{self.first_name} {self.last_name} ({self.member_id})"
 
-    # Helper methods
+    # -----------------------------
+    # Helper Methods
+    # -----------------------------
     def get_balance(self):
+        """Return current saving account balance."""
         return self.savings_account.balance if hasattr(self, 'savings_account') else 0
 
     def recent_transactions(self, limit=5):
+        """Return last N transactions for member's saving account."""
         if hasattr(self, 'savings_account'):
             return self.savings_account.transactions.order_by('-transaction_date')[:limit]
         return []
 
+# ============================================================
+#                SAVING ACCOUNT & TRANSACTIONS
+# ============================================================
 
-# ============================================================
-#                  SAVING ACCOUNT & TRANSACTIONS
-# ============================================================
 class SavingAccount(models.Model):
+    """Represents a member's saving account."""
     member = models.OneToOneField(Member, on_delete=models.CASCADE, related_name='savings_account')
     balance = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     account_created = models.DateTimeField(auto_now_add=True)
@@ -138,6 +170,7 @@ class SavingAccount(models.Model):
 
 
 class SavingTransaction(models.Model):
+    """Individual deposit or withdrawal linked to a SavingAccount."""
     TRANSACTION_TYPE_CHOICES = [
         ('DEPOSIT', 'Deposit'),
         ('WITHDRAWAL', 'Withdrawal'),
@@ -151,11 +184,12 @@ class SavingTransaction(models.Model):
     description = models.TextField(blank=True)
 
     def save(self, *args, **kwargs):
-        if not self.pk:
+        """Update account balance automatically on save."""
+        if not self.pk:  # Only on creation
             if self.transaction_type == 'DEPOSIT':
                 self.balance_after_transaction = self.account.balance + self.amount
                 self.account.balance += self.amount
-            else:
+            else:  # Withdrawal
                 self.balance_after_transaction = self.account.balance - self.amount
                 self.account.balance -= self.amount
             self.account.save()
@@ -164,11 +198,12 @@ class SavingTransaction(models.Model):
     def __str__(self):
         return f"{self.transaction_type} - {self.amount} on {self.transaction_date.strftime('%Y-%m-%d')}"
 
+# ============================================================
+#                 USER ACTIVITY LOG
+# ============================================================
 
-# ============================================================
-#                  USER ACTIVITY LOG
-# ============================================================
 class UserActivityLog(models.Model):
+    """Log member actions for auditing."""
     member = models.ForeignKey(Member, on_delete=models.CASCADE, related_name='activity_logs')
     action = models.CharField(max_length=255)
     timestamp = models.DateTimeField(auto_now_add=True)
@@ -177,11 +212,12 @@ class UserActivityLog(models.Model):
     def __str__(self):
         return f"{self.member} - {self.action} at {self.timestamp}"
 
-
 # ============================================================
 #                     NOTIFICATIONS
 # ============================================================
+
 class Notification(models.Model):
+    """Member notifications for system updates or support."""
     member = models.ForeignKey(Member, on_delete=models.CASCADE, related_name='notifications')
     message = models.TextField()
     is_read = models.BooleanField(default=False)
@@ -190,17 +226,18 @@ class Notification(models.Model):
     def __str__(self):
         return f"{self.member.first_name} - {'Read' if self.is_read else 'Unread'}"
 
+# ============================================================
+#                      SIGNALS
+# ============================================================
 
-# ============================================================
-#                            SIGNALS
-# ============================================================
 @receiver(post_save, sender=Member)
 def create_member_accounts(sender, instance, created, **kwargs):
+    """Automatically create saving account and system user when a member is created."""
     if created:
         # Create Saving Account
         SavingAccount.objects.create(member=instance)
 
-        # Create system user
+        # Create User account if not exists
         if not instance.user:
             temp_password = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
             username = f"{instance.first_name.lower()}.{instance.last_name.lower()}.{instance.member_id[-4:]}"
@@ -215,10 +252,10 @@ def create_member_accounts(sender, instance, created, **kwargs):
             instance.temp_password = True
             instance.save()
 
+# ============================================================
+#                           LOANS
+# ============================================================
 
-# ============================================================
-#                            LOANS
-# ============================================================
 LOAN_STATUS_CHOICES = [
     ('pending', 'Pending'),
     ('approved', 'Approved'),
@@ -227,6 +264,7 @@ LOAN_STATUS_CHOICES = [
 ]
 
 class Loan(models.Model):
+    """Represents a loan taken by a member."""
     member = models.ForeignKey(Member, on_delete=models.CASCADE, related_name='loans')
     principal_amount = models.DecimalField(max_digits=12, decimal_places=2)
     current_balance = models.DecimalField(max_digits=12, decimal_places=2, default=0)
@@ -237,6 +275,7 @@ class Loan(models.Model):
     status = models.CharField(max_length=20, choices=LOAN_STATUS_CHOICES, default='pending')
 
     def save(self, *args, **kwargs):
+        """Set initial balance and end date on creation."""
         if not self.pk:
             self.current_balance = self.principal_amount
             if not self.end_date:
@@ -244,6 +283,7 @@ class Loan(models.Model):
         super().save(*args, **kwargs)
 
     def calculate_monthly_interest(self):
+        """Return monthly interest for the current balance."""
         rate = self.interest_rate / 100
         return self.current_balance * rate
 
@@ -252,12 +292,14 @@ class Loan(models.Model):
 
 
 class LoanRepayment(models.Model):
+    """Represents a repayment made towards a loan."""
     loan = models.ForeignKey(Loan, on_delete=models.CASCADE, related_name='repayments')
     amount_paid = models.DecimalField(max_digits=12, decimal_places=2)
     date_paid = models.DateField(auto_now_add=True)
     balance_after_payment = models.DecimalField(max_digits=12, decimal_places=2, default=0)
 
     def save(self, *args, **kwargs):
+        """Update loan balance and status on repayment."""
         if not self.pk:
             self.balance_after_payment = self.loan.current_balance - self.amount_paid
             self.loan.current_balance -= self.amount_paid
@@ -272,9 +314,11 @@ class LoanRepayment(models.Model):
 
 
 class LoanGuarantor(models.Model):
+    """Represents a guarantor for a member's loan."""
     loan = models.ForeignKey(Loan, on_delete=models.CASCADE, related_name='guarantors')
     guarantor = models.ForeignKey(Member, on_delete=models.CASCADE)
 
+    # Helper methods
     def guarantor_name(self):
         return f"{self.guarantor.first_name} {self.guarantor.last_name}"
 
@@ -286,3 +330,4 @@ class LoanGuarantor(models.Model):
 
     def __str__(self):
         return f"{self.guarantor.first_name} guarantees {self.loan.member.first_name}"
+
