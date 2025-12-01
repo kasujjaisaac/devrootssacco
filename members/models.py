@@ -8,6 +8,8 @@ import random
 import string
 from decimal import Decimal, InvalidOperation
 from django.core.exceptions import ValidationError
+from django.contrib.auth.models import User
+from django.utils import timezone
 
 # ============================================================
 #                       MEMBER MODEL
@@ -206,7 +208,27 @@ class SavingTransaction(models.Model):
 
     def __str__(self):
         return f"{self.transaction_type} - {self.amount} on {self.transaction_date.strftime('%Y-%m-%d %H:%M')}"
+    def save(self, *args, **kwargs):
+        created_new = self.pk is None
+        if created_new:
+            amount = Decimal(self.amount)
+            if self.transaction_type == 'DEPOSIT':
+                self.balance_after_transaction = self.account.balance + amount
+                self.account.balance += amount
+            else:  # Withdrawal
+                self.balance_after_transaction = self.account.balance - amount
+                self.account.balance -= amount
+            self.account.save()
+        super().save(*args, **kwargs)
 
+        # create admin notification only when a new transaction is created
+        if created_new:
+            from .models import AdminNotification
+            AdminNotification.objects.create(
+                message=f"{self.transaction_type.title()} of UGX {self.amount:,} by {self.account.member.first_name} {self.account.member.last_name} ({self.account.member.member_id})",
+                notif_type='saving',
+                related_saving=self,
+                related_member=self.account.member)
 
 # ============================================================
 #                 USER ACTIVITY LOG
@@ -232,9 +254,35 @@ class Notification(models.Model):
     message = models.TextField()
     is_read = models.BooleanField(default=False)
     timestamp = models.DateTimeField(auto_now_add=True)
+    is_support = models.BooleanField(default=False)
+
 
     def __str__(self):
         return f"{self.member.first_name} - {'Read' if self.is_read else 'Unread'}"
+    
+class AdminNotification(models.Model):
+    NOTIF_TYPE_CHOICES = [
+        ('member', 'Member'),
+        ('saving', 'Saving'),
+        ('loan', 'Loan'),
+        ('system', 'System'),
+        ('other', 'Other'),
+    ]
+
+    message = models.TextField()
+    notif_type = models.CharField(max_length=30, choices=NOTIF_TYPE_CHOICES, default='other')
+    related_member = models.ForeignKey('Member', on_delete=models.SET_NULL, null=True, blank=True, related_name='admin_notifications')
+    related_loan = models.ForeignKey('Loan', on_delete=models.SET_NULL, null=True, blank=True, related_name='admin_notifications')
+    related_saving = models.ForeignKey('SavingTransaction', on_delete=models.SET_NULL, null=True, blank=True, related_name='admin_notifications')
+    created_at = models.DateTimeField(default=timezone.now)
+    is_read = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        status = 'Read' if self.is_read else 'Unread'
+        return f"[{self.get_notif_type_display()}] {status} - {self.message[:60]}"
 
 # ============================================================
 #                      SIGNALS
@@ -299,7 +347,23 @@ class Loan(models.Model):
 
     def __str__(self):
         return f"{self.member.first_name} {self.member.last_name} - Loan {self.principal_amount}"
+    def save(self, *args, **kwargs):
+        is_new = self.pk is None
+        if is_new:
+            self.current_balance = self.principal_amount
+            if not self.end_date:
+                self.end_date = self.start_date + timedelta(days=self.loan_term*30)
+        super().save(*args, **kwargs)
 
+        # create admin notification on new loan request
+        if is_new:
+            from .models import AdminNotification
+            AdminNotification.objects.create(
+                message=f"Loan request: {self.member.first_name} {self.member.last_name} requested UGX {self.principal_amount:,}. Loan ID: {self.id}",
+                notif_type='loan',
+                related_loan=self,
+                related_member=self.member
+            )
 
 class LoanRepayment(models.Model):
     loan = models.ForeignKey(Loan, on_delete=models.CASCADE, related_name='repayments')
@@ -321,7 +385,26 @@ class LoanRepayment(models.Model):
 
     def __str__(self):
         return f"{self.loan.member.first_name} paid {self.amount_paid} on {self.date_paid}"
+    def save(self, *args, **kwargs):
+        is_new = self.pk is None
+        if is_new:
+            self.balance_after_payment = self.loan.current_balance - self.amount_paid
+            self.loan.current_balance -= self.amount_paid
+            if self.loan.current_balance <= 0:
+                self.loan.current_balance = 0
+                self.loan.status = "completed"
+            self.loan.save()
+        super().save(*args, **kwargs)
 
+        # create admin notification only on first save (new repayment)
+        if is_new:
+            from .models import AdminNotification
+            AdminNotification.objects.create(
+                message=f"Loan repayment of UGX {self.amount_paid:,} for Loan #{self.loan.id} by {self.loan.member.first_name} {self.loan.member.last_name}.",
+                notif_type='loan',
+                related_loan=self.loan,
+                related_member=self.loan.member
+            )
 class LoanGuarantor(models.Model):
     loan = models.ForeignKey(Loan, on_delete=models.CASCADE, related_name='guarantors')
     guarantor = models.ForeignKey(Member, on_delete=models.CASCADE)
@@ -337,3 +420,72 @@ class LoanGuarantor(models.Model):
 
     def __str__(self):
         return f"{self.guarantor.first_name} guarantees {self.loan.member.first_name}"
+
+
+# ============================================================
+# MEMBER SUPPORT REQUEST
+# ============================================================
+class SupportRequest(models.Model):
+    SUPPORT_CATEGORIES = [
+        ('personal_info', 'Updating Personal Information'),
+        ('financial_guidance', 'Financial Literacy / Guidance'),
+        ('service_issue', 'Service Issues'),
+        ('transaction_error', 'Incorrect Deductions or Errors'),
+        ('staff_behavior', 'Staff Behavior'),
+        ('other', 'Other / Miscellaneous'),
+    ]
+
+    member = models.ForeignKey('Member', on_delete=models.CASCADE, related_name='support_requests')
+    category = models.CharField(max_length=50, choices=SUPPORT_CATEGORIES)
+    question = models.TextField()
+    response = models.TextField(blank=True, null=True)
+    is_resolved = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    responded_at = models.DateTimeField(blank=True, null=True)
+
+    def __str__(self):
+        return f"{self.member} - {self.get_category_display()} - {'Resolved' if self.is_resolved else 'Pending'}"
+    
+
+# ============================================================
+# MEMBER SYSTEM SETTINGS
+# ============================================================
+class SystemSetting(models.Model):
+    sacco_name = models.CharField(max_length=255, default="Devroots SACCO")
+    address = models.TextField(blank=True)
+    email = models.EmailField(blank=True)
+    phone = models.CharField(max_length=20, blank=True)
+    logo = models.ImageField(upload_to="system_logos/", blank=True, null=True)
+    default_membership_fee = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    default_loan_interest_rate = models.DecimalField(max_digits=5, decimal_places=2, default=10.0)
+    max_loan_amount = models.DecimalField(max_digits=15, decimal_places=2, default=1000000)
+    min_loan_amount = models.DecimalField(max_digits=15, decimal_places=2, default=10000)
+    loan_repayment_period_days = models.IntegerField(default=90)  # default 3 months
+    notifications_enabled = models.BooleanField(default=True)
+
+    def __str__(self):
+        return "System Settings"
+    
+# ============================================================
+# SYSTEM ROLES
+# ============================================================
+class Role(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    description = models.TextField(blank=True)
+    # store permission keys as list
+    permissions = models.JSONField(default=list, blank=True)
+
+    def __str__(self):
+        return self.name
+
+    @property
+    def permissions_list(self):
+        return ", ".join(self.permissions)
+
+
+class UserRole(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='user_role')
+    role = models.ForeignKey(Role, on_delete=models.SET_NULL, null=True, blank=True, related_name='users')
+
+    def __str__(self):
+        return f"{self.user.username} -> {self.role.name if self.role else 'No role'}"

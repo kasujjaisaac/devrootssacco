@@ -7,7 +7,6 @@ import string
 from django.utils import timezone
 from django.db import transaction
 from .forms import LoanRepaymentForm
-
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
@@ -21,6 +20,16 @@ from .forms import AdminAddMemberForm, MemberUpdateForm, LoanForm
 from .models import (Member, SavingAccount, SavingTransaction,Loan, LoanRepayment, LoanGuarantor,UserActivityLog, Notification)
 from django.db.models import Sum, Count, Q, F
 from datetime import datetime, timedelta
+from .models import AdminNotification
+from .models import SystemSetting
+from .forms import SystemSettingForm
+from members.models import Role, UserRole
+from members.forms import RoleForm
+from django.contrib.auth.models import Group, Permission, User
+from django.contrib.admin.views.decorators import staff_member_required
+from django.contrib.auth.models import Group, Permission
+from django.http import JsonResponse
+from django.contrib.auth.decorators import login_required, permission_required, user_passes_test
 
 # ==========================================================
 # HELPER FUNCTIONS
@@ -63,7 +72,19 @@ def create_member_user(member):
     member.save()
     return user, tmp_pass
 
-
+def role_required(group_name):
+    """
+    Decorator to restrict view access to users in a specific group.
+    """
+    def decorator(view_func):
+        def _wrapped_view(request, *args, **kwargs):
+            if request.user.is_authenticated and request.user.groups.filter(name=group_name).exists():
+                return view_func(request, *args, **kwargs)
+            # If user is not in the group, show message and redirect
+            messages.error(request, "You do not have permission to access this page.")
+            return redirect("home")  # Replace 'home' with your actual homepage URL name
+        return _wrapped_view
+    return decorator
 # ==========================================================
 # AUTHENTICATION VIEWS
 # ==========================================================
@@ -81,12 +102,10 @@ def login_view(request):
 
     return render(request, 'members/login.html')
 
-
 @login_required
 def logout_view(request):
     logout(request)
     return redirect('member_login')
-
 
 # ==========================================================
 # ADMIN VIEWS
@@ -694,13 +713,27 @@ def member_transactions(request):
     transactions = account.transactions.order_by('-transaction_date') if account else []
     return render(request, 'members/member_transactions.html', {'transactions': transactions})
 
+# ==========================================================
+# Member: Support Request
+# ==========================================================
 
-@login_required
+@login_required 
 def member_support(request):
-    member = request.user.member
-    return render(request, 'members/member_support.html', {'member': member})
+    if request.method == 'POST':
+        form = SupportRequestForm(request.POST)
+        if form.is_valid():
+            support_request = form.save(commit=False)
+            support_request.member = request.user.member 
+            support_request.save()
+            messages.success(request, "Your request has been submitted successfully!")
+            return redirect('member_dashboard')
+    else:
+        form = SupportRequestForm()
+    return render(request, 'members/support_request.html', {'form': form})
 
-
+# ==========================================================
+# ADMIN: Notifications
+# ==========================================================
 @login_required
 def mark_notification_read(request, notification_id):
     member = request.user.member
@@ -711,6 +744,33 @@ def mark_notification_read(request, notification_id):
     except Notification.DoesNotExist:
         messages.error(request, "Notification does not exist.")
     return redirect('member_dashboard')
+
+# ==========================================================
+# ADMIN: Member Support
+# ==========================================================
+@login_required
+def admin_mark_all_notifications_read(request):
+    """Mark all admin notifications as read."""
+    AdminNotification.objects.filter(is_read=False).update(is_read=True)
+    return redirect('admin_notifications')
+
+@login_required
+def admin_support_requests(request):
+    support_tickets = SupportRequest.objects.all().order_by('-created_at')
+    return render(request, 'admin/admin_support.html', {'support_tickets': support_tickets})
+
+@login_required
+def respond_support_request(request, pk):
+    support_request = get_object_or_404(SupportRequest, pk=pk)
+    if request.method == 'POST':
+        response = request.POST.get('response')
+        support_request.response = response
+        support_request.is_resolved = True
+        support_request.responded_at = timezone.now()
+        support_request.save()
+        messages.success(request, "Response sent successfully!")
+        return redirect('admin_support_requests')
+    return render(request, 'admin/respond_support_request.html', {'request_obj': support_request})
 
 
 # ==========================================================
@@ -730,3 +790,101 @@ def admin_manage_users(request):
 @user_passes_test(is_admin)
 def members_management_home(request):
     return render(request, "members/members_management_home.html")
+
+
+# ==========================================================
+# SYSTEM SETTINGS
+# ==========================================================
+@login_required
+@user_passes_test(is_admin)
+def system_settings(request):
+    # Get existing settings (create if none exists)
+    settings, created = SystemSetting.objects.get_or_create(id=1)
+
+    if request.method == "POST":
+        form = SystemSettingForm(request.POST, request.FILES, instance=settings)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "System settings updated successfully!")
+            return redirect('system_settings')
+    else:
+        form = SystemSettingForm(instance=settings)
+
+    # Pass group info to template
+    is_admin_user = request.user.groups.filter(name='Admin').exists()
+    is_support_user = request.user.groups.filter(name='Support').exists()
+    is_finance_user = request.user.groups.filter(name='Finance').exists()
+
+    context = {
+        'form': form,
+        'is_admin_user': is_admin_user,
+        'is_support_user': is_support_user,
+        'is_finance_user': is_finance_user,
+    }
+    return render(request, 'admin/system_settings.html', context)
+
+# ==========================================================
+# SYSTEM ROLES
+# ==========================================================
+# Helper: check if user is admin
+def is_admin_user(user):
+    return user.is_superuser or user.groups.filter(name='Admin').exists()
+
+# Main Roles Management View
+@login_required
+@user_passes_test(is_admin_user)
+def manage_roles(request):
+    roles = Group.objects.all()
+    permissions = Permission.objects.all()
+
+    # ----------------- Add Role -----------------
+    if request.method == "POST" and 'add_role' in request.POST:
+        role_name = request.POST.get("role_name", "").strip()
+        if role_name:
+            if Group.objects.filter(name=role_name).exists():
+                messages.error(request, "Role already exists.")
+            else:
+                Group.objects.create(name=role_name)
+                messages.success(request, f"Role '{role_name}' created successfully.")
+        return redirect("manage_roles")
+
+    # ----------------- Assign Permissions -----------------
+    if request.method == "POST" and 'assign_permissions' in request.POST:
+        role_id = request.POST.get("role_id")
+        selected_permissions = request.POST.getlist("permissions")
+        role = get_object_or_404(Group, id=role_id)
+        role.permissions.set(selected_permissions)
+        messages.success(request, f"Permissions updated for role: {role.name}")
+        return redirect("manage_roles")
+
+    # ----------------- Delete Role -----------------
+    if request.method == "POST" and 'delete_role' in request.POST:
+        role_id = request.POST.get("delete_role_id")
+        role = get_object_or_404(Group, id=role_id)
+        role.delete()
+        messages.success(request, f"Role '{role.name}' deleted successfully.")
+        return redirect("manage_roles")
+
+    context = {
+        "roles": roles,
+        "permissions": permissions,
+    }
+    return render(request, "admin/manage_roles.html", context)
+
+@login_required
+@user_passes_test(is_admin_user)
+def assign_permissions(request, role_id):
+    role = get_object_or_404(Group, id=role_id)
+    permissions = Permission.objects.all()
+
+    if request.method == "POST":
+        selected_permissions = request.POST.getlist("permissions")
+        role.permissions.set(selected_permissions)
+        messages.success(request, f"Permissions updated for role: {role.name}")
+        return redirect("manage_roles")
+
+    context = {
+        "role": role,
+        "permissions": permissions,
+    }
+    return render(request, "admin/assign_permissions.html", context)

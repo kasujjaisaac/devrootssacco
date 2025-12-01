@@ -95,6 +95,24 @@ urlpatterns = [
     # ADMIN USER MANAGEMENT
     # ============================================
     path('admin/manage-users/', views.admin_manage_users, name='admin_manage_users'),    # Manage system users
+
+    # ============================================
+    # ADMIN NOTIFICATIONS
+    # ============================================
+    path('admin/notifications/', views.admin_notifications, name='admin_notifications'),
+    path('admin/notifications/mark-all-read/', views.admin_mark_all_notifications_read, name='admin_mark_all_notifications_read'),
+
+
+    # ============================================
+    # SYSTEM SETTINGS
+    # ============================================
+    path('admin/settings/', views.system_settings, name='system_settings'),
+    path("admin/roles/", views.manage_roles, name="manage_roles"),
+    path('admin/settings/roles/', views.manage_roles, name="manage_roles"),
+    path('admin/settings/roles/<int:role_id>/permissions/', views.assign_permissions, name="assign_permissions"),
+
+
+
 ]
 
 # ============================================================

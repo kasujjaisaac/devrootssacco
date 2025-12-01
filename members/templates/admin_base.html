@@ -95,16 +95,31 @@
                 <a href="{% url 'member_profile' %}" class="btn btn-outline-light btn-sm">
                     <i class="bi bi-person-circle"></i> Profile
                 </a>
-
-                <!-- Notifications -->
-                <a href="{% url 'admin_notifications' %}" class="btn btn-outline-light btn-sm position-relative">
-                    <i class="bi bi-bell"></i> Notifications
-                    {% if unread_notifications and unread_notifications > 0 %}
-                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-                        {{ unread_notifications }}
-                    </span>
-                    {% endif %}
-                </a>
+                
+                <!-- Notifications Dropdown -->
+                <div class="dropdown">
+                    <a class="btn btn-outline-light btn-sm position-relative dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                        <i class="bi bi-bell"></i> Notifications
+                        {% if admin_unread_count and admin_unread_count > 0 %}
+                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                            {{ admin_unread_count }}
+                        </span>
+                        {% endif %}
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        {% for notif in admin_latest_notifications %}
+                        <li>
+                            <a class="dropdown-item{% if not notif.is_read %} fw-bold{% endif %}" href="#">
+                                {{ notif.message|truncatechars:50 }}
+                                <br>
+                                <small class="text-muted">{{ notif.created_at|date:"M d, Y H:i" }}</small>
+                            </a>
+                        </li>
+                        {% empty %}
+                        <li><span class="dropdown-item">No notifications</span></li>
+                        {% endfor %}
+                    </ul>
+                </div>
 
                 <!-- Logout -->
                 <a href="{% url 'logout' %}" class="btn btn-logout btn-sm">
@@ -123,10 +138,9 @@
 
                     <!-- Members Menu -->
                     <li class="nav-item mb-2">
-                        <a class="nav-link d-flex justify-content-between align-items-center" 
-                           data-bs-toggle="collapse" href="#membersMenu" role="button">
-                           <span><i class="bi bi-people-fill me-2"></i> Members</span>
-                           <i class="bi bi-chevron-down"></i>
+                        <a class="nav-link d-flex justify-content-between align-items-center" data-bs-toggle="collapse" href="#membersMenu" role="button">
+                            <span><i class="bi bi-people-fill me-2"></i> Members</span>
+                            <i class="bi bi-chevron-down"></i>
                         </a>
                         <div class="collapse" id="membersMenu">
                             <ul class="nav flex-column ms-3">
@@ -138,10 +152,9 @@
 
                     <!-- Loans Menu -->
                     <li class="nav-item mb-2">
-                        <a class="nav-link d-flex justify-content-between align-items-center" 
-                           data-bs-toggle="collapse" href="#loansMenu" role="button">
-                           <span><i class="bi bi-cash-stack me-2"></i> Loans</span>
-                           <i class="bi bi-chevron-down"></i>
+                        <a class="nav-link d-flex justify-content-between align-items-center" data-bs-toggle="collapse" href="#loansMenu" role="button">
+                            <span><i class="bi bi-cash-stack me-2"></i> Loans</span>
+                            <i class="bi bi-chevron-down"></i>
                         </a>
                         <div class="collapse" id="loansMenu">
                             <ul class="nav flex-column ms-3">
@@ -153,10 +166,9 @@
 
                     <!-- Savings Menu -->
                     <li class="nav-item mb-2">
-                        <a class="nav-link d-flex justify-content-between align-items-center" 
-                           data-bs-toggle="collapse" href="#savingsMenu" role="button">
-                           <span><i class="bi bi-wallet2 me-2"></i> Savings</span>
-                           <i class="bi bi-chevron-down"></i>
+                        <a class="nav-link d-flex justify-content-between align-items-center" data-bs-toggle="collapse" href="#savingsMenu" role="button">
+                            <span><i class="bi bi-wallet2 me-2"></i> Savings</span>
+                            <i class="bi bi-chevron-down"></i>
                         </a>
                         <div class="collapse" id="savingsMenu">
                             <ul class="nav flex-column ms-3">
@@ -165,9 +177,16 @@
                         </div>
                     </li>
 
-                    <!-- Notifications -->
+                    <!-- Notifications Link -->
                     <li class="nav-item mb-2">
-                        <a class="nav-link" href="{% url 'admin_notifications' %}"><i class="bi bi-bell me-2"></i> Notifications</a>
+                        <a class="nav-link position-relative" href="{% url 'admin_notifications' %}">
+                            <i class="bi bi-bell me-2"></i> Notifications
+                            {% if admin_unread_count and admin_unread_count > 0 %}
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                {{ admin_unread_count }}
+                            </span>
+                            {% endif %}
+                        </a>
                     </li>
 
                     <!-- Reports -->
@@ -178,6 +197,12 @@
                     <!-- Support -->
                     <li class="nav-item mb-2">
                         <a class="nav-link" href="{% url 'admin_support' %}"><i class="bi bi-life-preserver me-2"></i> Support</a>
+                    </li>
+
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'manage_roles' %}">
+                            <i class="bi bi-people-fill me-2"></i> User Roles 
+                        </a>
                     </li>
 
                 </ul>

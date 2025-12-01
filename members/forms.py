@@ -1,6 +1,9 @@
 from django import forms
 from .models import Member, Loan
 from .models import LoanRepayment
+from .models import SystemSetting
+from members.models import Role
+
 
 # ---------------------------------------------------
 # Admin Add Member Form  (with validations)
@@ -186,3 +189,42 @@ class LoanRepaymentForm(forms.ModelForm):
         if not receipt:
             raise forms.ValidationError("Please upload the bank payment receipt.")
         return receipt
+    
+# ---------------------------------------------------
+# System Settings Form
+# ---------------------------------------------------
+class SystemSettingForm(forms.ModelForm):
+    class Meta:
+        model = SystemSetting
+        fields = '__all__'
+        widgets = {
+            'address': forms.Textarea(attrs={'rows': 3}),
+        }
+
+# ---------------------------------------------------
+# Roles Form
+# ---------------------------------------------------
+PERMISSION_CHOICES = [
+    ("view_dashboard", "View Dashboard"),
+    ("manage_members", "Manage Members"),
+    ("manage_savings", "Manage Savings"),
+    ("manage_loans", "Manage Loans"),
+    ("manage_reports", "View Reports"),
+    ("manage_support", "Support & Tickets"),
+    ("manage_settings", "System Settings"),
+]
+
+class RoleForm(forms.ModelForm):
+    permissions = forms.MultipleChoiceField(
+        choices=PERMISSION_CHOICES,
+        widget=forms.CheckboxSelectMultiple,
+        required=False,
+        label="Permissions"
+    )
+
+    class Meta:
+        model = Role
+        fields = ["name", "description", "permissions"]
+
+    def clean_permissions(self):
+        return self.cleaned_data.get("permissions", [])

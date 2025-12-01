@@ -3,6 +3,80 @@
 {% block title %}Support{% endblock %}
 
 {% block content %}
-<h2>Support</h2>
-<p>For assistance, contact support@devroots.com or call +256 705 028 592.</p>
+<div class="container mt-4">
+
+    <h2 class="text-success fw-bold mb-4">
+        <i class="bi bi-headset me-2"></i>Support
+    </h2>
+
+    <!-- Support Request Form -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-body">
+            <h5 class="card-title">Submit a Support Request</h5>
+            <form method="post" action="{% url 'submit_support_request' %}">
+                {% csrf_token %}
+                
+                <div class="mb-3">
+                    <label for="category" class="form-label">Category</label>
+                    <select class="form-select" id="category" name="category" required>
+                        <option value="" disabled selected>Select category</option>
+                        <option value="personal_info">Updating Personal Information</option>
+                        <option value="financial_literacy">Financial Literacy Questions</option>
+                        <option value="complaints">Complaints / Feedback</option>
+                        <option value="service_issues">Service Issues</option>
+                        <option value="transaction_delay">Delays in Transactions</option>
+                        <option value="incorrect_deductions">Incorrect Deductions or Errors</option>
+                        <option value="staff_behavior">Staff Behavior</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label for="question" class="form-label">Your Question / Issue</label>
+                    <textarea class="form-control" id="question" name="question" rows="4" placeholder="Type your question or issue here..." required></textarea>
+                </div>
+
+                <button type="submit" class="btn btn-success">Submit Request</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- List of Your Requests -->
+    <h5 class="mb-3">Your Submitted Requests</h5>
+    <div class="list-group">
+        {% for req in user_requests %}
+            <div class="list-group-item shadow-sm mb-2 rounded {% if not req.is_resolved %}unresolved-request{% else %}resolved-request{% endif %}">
+                <h6 class="fw-bold">{{ req.get_category_display }}</h6>
+                <p>{{ req.question }}</p>
+                <small class="text-secondary">{{ req.created_at|date:"M d, Y H:i" }}</small>
+
+                {% if req.is_resolved %}
+                    <div class="alert alert-success mt-2">
+                        <strong>Response:</strong> {{ req.response }}
+                    </div>
+                {% else %}
+                    <span class="badge bg-warning text-dark mt-2">Pending Response</span>
+                {% endif %}
+            </div>
+        {% empty %}
+            <p class="text-muted">You have not submitted any support requests yet.</p>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Custom CSS -->
+<style>
+.unresolved-request {
+    background: #fff4e5;
+    border-left: 4px solid #ffc107;
+}
+.resolved-request {
+    background: #e8f9f0;
+    border-left: 4px solid #28a745;
+}
+.list-group-item:hover {
+    background: #f3fdf7;
+}
+</style>
+
 {% endblock %}

@@ -1,0 +1,74 @@
+{% extends 'admin_base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Notifications{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="text-success fw-bold">
+            <i class="bi bi-bell-fill me-2"></i>Notifications
+        </h2>
+
+        <a href="{% url 'admin_mark_all_notifications_read' %}" class="btn btn-success shadow-sm px-4 rounded-pill">
+            <i class="bi bi-check2-all me-1"></i> Mark All as Read
+        </a>
+    </div>
+
+    <!-- Filters -->
+    <div class="mb-4">
+        <div class="btn-group" role="group">
+            <button class="btn btn-outline-success active">All</button>
+            <button class="btn btn-outline-success">Unread</button>
+            <button class="btn btn-outline-success">System</button>
+            <button class="btn btn-outline-success">Finance</button>
+            <button class="btn btn-outline-success">Members</button>
+        </div>
+    </div>
+
+    <!-- Notification List -->
+    <div class="list-group">
+        {% if admin_notifications %}
+            {% for notif in admin_notifications %}
+                <a href="#" class="list-group-item list-group-item-action d-flex justify-content-between align-items-start shadow-sm mb-2 rounded {% if not notif.is_read %}unread-notification{% endif %}">
+                    <div class="d-flex">
+                        <div class="me-3">
+                            {% if notif.notif_type == 'saving' %}
+                                <i class="bi bi-piggy-bank-fill fs-3 text-success"></i>
+                            {% elif notif.notif_type == 'loan' %}
+                                <i class="bi bi-cash-stack fs-3 text-success"></i>
+                            {% elif notif.notif_type == 'member' %}
+                                <i class="bi bi-person-fill fs-3 text-success"></i>
+                            {% else %}
+                                <i class="bi bi-info-circle-fill fs-3 text-success"></i>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <h5 class="fw-bold mb-1">{{ notif.notif_type|title }}</h5>
+                            <p class="mb-1 text-muted">{{ notif.message }}</p>
+                            <small class="text-secondary">{{ notif.created_at|naturaltime }}</small>
+                        </div>
+                    </div>
+                </a>
+            {% endfor %}
+        {% else %}
+            <p class="text-muted">No notifications found.</p>
+        {% endif %}
+    </div>
+
+</div>
+
+<!-- Custom CSS -->
+<style>
+    .unread-notification {
+        background: #e8f9f0;
+        border-left: 4px solid #28a745;
+    }
+    .list-group-item:hover {
+        background: #f3fdf7;
+    }
+</style>
+{% endblock %}
