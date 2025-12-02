@@ -91,20 +91,25 @@ def role_required(group_name):
 def login_view(request):
     if request.method == 'POST':
         username = request.POST.get('username', '').strip()
-        password = request.POST.get('password')
-        user = authenticate(request, username=username, password=password)
+        password = request.POST.get('password', '').strip()
 
+        if not username or not password:
+            messages.error(request, "Both username and password are required.")
+            return render(request, 'members/login.html')
+
+        user = authenticate(request, username=username, password=password)
         if user:
             login(request, user)
             return redirect('admin_dashboard') if is_admin(user) else redirect('member_dashboard')
-
-        messages.error(request, "Invalid username or password")
+        else:
+            messages.error(request, "Invalid username or password.")
 
     return render(request, 'members/login.html')
 
 @login_required
 def logout_view(request):
     logout(request)
+    messages.success(request, "You have successfully logged out.")
     return redirect('member_login')
 
 # ==========================================================
