@@ -63,9 +63,22 @@
             </div>
             {% endfor %}
         </div>
+
         <button type="submit" class="btn btn-success mt-3">
             <i class="bi bi-save me-1"></i> Add Member
         </button>
     </form>
 </div>
+
+<script>
+    // Optional: prevent entering non-numeric values in membership fee field
+    const membershipFeeInput = document.querySelector('input[name="membership_fee_paid"]');
+    if (membershipFeeInput) {
+        membershipFeeInput.addEventListener('input', function() {
+            // Remove anything that's not a digit or a dot
+            this.value = this.value.replace(/[^0-9.]/g, '');
+        });
+    }
+</script>
+
 {% endblock %}

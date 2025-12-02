@@ -1,9 +1,6 @@
 from django import forms
-from .models import Member, Loan
-from .models import LoanRepayment
-from .models import SystemSetting
+from .models import Member, Loan, LoanRepayment, SystemSetting
 from members.models import Role
-
 
 # ---------------------------------------------------
 # Admin Add Member Form  (with validations)
@@ -31,44 +28,39 @@ class AdminAddMemberForm(forms.ModelForm):
             'nationality': forms.TextInput(attrs={'class': 'form-control'}),
             'district_of_birth': forms.TextInput(attrs={'class': 'form-control'}),
             'tribe': forms.TextInput(attrs={'class': 'form-control'}),
-
             'profile_pic': forms.FileInput(attrs={'class': 'form-control'}),
             'national_id': forms.TextInput(attrs={'class': 'form-control'}),
             'national_id_copy': forms.FileInput(attrs={'class': 'form-control'}),
-
             'phone': forms.TextInput(attrs={'class': 'form-control'}),
             'email': forms.EmailInput(attrs={'class': 'form-control'}),
             'address': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
             'preferred_contact': forms.Select(attrs={'class': 'form-select'}),
-
             'occupation': forms.TextInput(attrs={'class': 'form-control'}),
-            'employment_status': forms.TextInput(attrs={'class': 'form-control'}),  # ✔ textbox
-
+            'employment_status': forms.TextInput(attrs={'class': 'form-control'}),
             'employer_name': forms.TextInput(attrs={'class': 'form-control'}),
             'employer_department': forms.TextInput(attrs={'class': 'form-control'}),
             'employer_address': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
             'work_phone': forms.TextInput(attrs={'class': 'form-control'}),
-
-            'income_range': forms.Select(attrs={'class': 'form-select'}),  # ✔ dropdown
-
+            'income_range': forms.Select(attrs={'class': 'form-select'}),
             'source_of_income': forms.TextInput(attrs={'class': 'form-control'}),
             'tin_number': forms.TextInput(attrs={'class': 'form-control'}),
-
             'nok_name': forms.TextInput(attrs={'class': 'form-control'}),
             'nok_relationship': forms.TextInput(attrs={'class': 'form-control'}),
             'nok_phone': forms.TextInput(attrs={'class': 'form-control'}),
             'nok_email': forms.EmailInput(attrs={'class': 'form-control'}),
             'nok_address': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
-
-            'preferred_saving': forms.TextInput(attrs={'class': 'form-control'}),  # ✔ textbox
-
-            'membership_fee_paid': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'preferred_saving': forms.TextInput(attrs={'class': 'form-control'}),
+            'membership_fee_paid': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Enter membership fee',
+                'step': '0.01',
+                'min': '0'
+            }),
         }
 
-    # ---------------------------------------------------
-    # FIELD-LEVEL VALIDATION (clear error messages)
-    # ---------------------------------------------------
-
+    # -------------------------------
+    # FIELD-LEVEL VALIDATION
+    # -------------------------------
     def clean_phone(self):
         phone = self.cleaned_data.get("phone")
         if phone and not phone.isdigit():
@@ -104,19 +96,23 @@ class AdminAddMemberForm(forms.ModelForm):
                 raise forms.ValidationError("Preferred saving must be a valid number.")
         return saving
 
-    # ---------------------------------------------------
+    def clean_membership_fee_paid(self):
+        fee = self.cleaned_data.get("membership_fee_paid")
+        if fee is not None and fee < 0:
+            raise forms.ValidationError("Membership fee cannot be negative.")
+        return fee
+
+    # -------------------------------
     # FORM-WIDE VALIDATION
-    # ---------------------------------------------------
+    # -------------------------------
     def clean(self):
         cleaned_data = super().clean()
-
         employment_status = cleaned_data.get("employment_status")
         if employment_status and len(employment_status) < 3:
             self.add_error(
                 "employment_status",
                 "Employment status must be at least 3 characters long."
             )
-
         return cleaned_data
 
 
@@ -144,6 +140,8 @@ class LoanForm(forms.ModelForm):
             'status': forms.Select(attrs={'class': 'form-select'}),
             'end_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
         }
+
+
 class LoanGuarantorForm(forms.Form):
     guarantor1 = forms.ModelChoiceField(
         queryset=Member.objects.all(),
@@ -160,6 +158,7 @@ class LoanGuarantorForm(forms.Form):
         widget=forms.Select(attrs={'class': 'form-select'}),
         label="Guarantor 3"
     )
+
 
 class LoanRepaymentForm(forms.ModelForm):
     class Meta:
@@ -189,7 +188,8 @@ class LoanRepaymentForm(forms.ModelForm):
         if not receipt:
             raise forms.ValidationError("Please upload the bank payment receipt.")
         return receipt
-    
+
+
 # ---------------------------------------------------
 # System Settings Form
 # ---------------------------------------------------
@@ -200,6 +200,7 @@ class SystemSettingForm(forms.ModelForm):
         widgets = {
             'address': forms.Textarea(attrs={'rows': 3}),
         }
+
 
 # ---------------------------------------------------
 # Roles Form

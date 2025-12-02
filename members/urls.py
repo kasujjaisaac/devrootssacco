@@ -95,6 +95,7 @@ urlpatterns = [
     # ADMIN USER MANAGEMENT
     # ============================================
     path('admin/manage-users/', views.admin_manage_users, name='admin_manage_users'),    # Manage system users
+    path('admin/profile/', views.admin_profile, name='admin_profile'),
 
     # ============================================
     # ADMIN NOTIFICATIONS

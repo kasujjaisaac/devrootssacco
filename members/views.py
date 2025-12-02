@@ -888,3 +888,16 @@ def assign_permissions(request, role_id):
         "permissions": permissions,
     }
     return render(request, "admin/assign_permissions.html", context)
+
+# ==========================================================
+# ADMIN PROFILE
+# ==========================================================
+@login_required
+@user_passes_test(is_admin)
+def admin_profile(request):
+    user = request.user  # Get logged-in admin user
+
+    context = {
+        'user': user,
+    }
+    return render(request, 'admin/admin_profile.html', context)

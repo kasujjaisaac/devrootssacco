@@ -1,0 +1,25 @@
+{% extends "admin_base.html" %}
+{% load static %}
+
+{% block title %}Admin Profile{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">Admin Profile</h2>
+
+    <div class="card p-4">
+        <p><strong>Username:</strong> {{ user.username }}</p>
+        <p><strong>Full Name:</strong> {{ user.first_name }} {{ user.last_name }}</p>
+        <p><strong>Email:</strong> {{ user.email }}</p>
+        <p><strong>Staff Status:</strong> {{ user.is_staff }}</p>
+        <p><strong>Superuser:</strong> {{ user.is_superuser }}</p>
+        <p><strong>Groups:</strong> 
+            {% for group in user.groups.all %}
+                {{ group.name }}{% if not forloop.last %}, {% endif %}
+            {% empty %}
+                None
+            {% endfor %}
+        </p>
+    </div>
+</div>
+{% endblock %}
