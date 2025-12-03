@@ -13,7 +13,7 @@ class ForcePasswordChangeMiddleware:
         if request.user.is_authenticated:
             member = getattr(request.user, 'member', None)
             if member and getattr(member, 'temp_password', False):
-                allowed_paths = [reverse('change_password'), reverse('member_logout')]
+                allowed_paths = [reverse('change_password'), reverse('logout')]
                 if request.path not in allowed_paths:
                     return redirect('change_password')
         return self.get_response(request)

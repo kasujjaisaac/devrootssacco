@@ -1,81 +1,105 @@
 {% extends "base.html" %}
 
-{% block title %}Support{% endblock %}
+{% block title %}Member Support{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
 
-    <h2 class="text-success fw-bold mb-4">
-        <i class="bi bi-headset me-2"></i>Support
-    </h2>
-
-    <!-- Support Request Form -->
-    <div class="card mb-4 shadow-sm">
-        <div class="card-body">
-            <h5 class="card-title">Submit a Support Request</h5>
-            <form method="post" action="{% url 'submit_support_request' %}">
-                {% csrf_token %}
-                
-                <div class="mb-3">
-                    <label for="category" class="form-label">Category</label>
-                    <select class="form-select" id="category" name="category" required>
-                        <option value="" disabled selected>Select category</option>
-                        <option value="personal_info">Updating Personal Information</option>
-                        <option value="financial_literacy">Financial Literacy Questions</option>
-                        <option value="complaints">Complaints / Feedback</option>
-                        <option value="service_issues">Service Issues</option>
-                        <option value="transaction_delay">Delays in Transactions</option>
-                        <option value="incorrect_deductions">Incorrect Deductions or Errors</option>
-                        <option value="staff_behavior">Staff Behavior</option>
-                        <option value="other">Other</option>
-                    </select>
-                </div>
-
-                <div class="mb-3">
-                    <label for="question" class="form-label">Your Question / Issue</label>
-                    <textarea class="form-control" id="question" name="question" rows="4" placeholder="Type your question or issue here..." required></textarea>
-                </div>
-
-                <button type="submit" class="btn btn-success">Submit Request</button>
-            </form>
-        </div>
-    </div>
-
-    <!-- List of Your Requests -->
-    <h5 class="mb-3">Your Submitted Requests</h5>
-    <div class="list-group">
-        {% for req in user_requests %}
-            <div class="list-group-item shadow-sm mb-2 rounded {% if not req.is_resolved %}unresolved-request{% else %}resolved-request{% endif %}">
-                <h6 class="fw-bold">{{ req.get_category_display }}</h6>
-                <p>{{ req.question }}</p>
-                <small class="text-secondary">{{ req.created_at|date:"M d, Y H:i" }}</small>
-
-                {% if req.is_resolved %}
-                    <div class="alert alert-success mt-2">
-                        <strong>Response:</strong> {{ req.response }}
-                    </div>
-                {% else %}
-                    <span class="badge bg-warning text-dark mt-2">Pending Response</span>
-                {% endif %}
+            <!-- Header -->
+            <div class="mb-4 text-center">
+                <h2 class="text-success fw-bold">
+                    <i class="bi bi-headset me-2"></i>Support
+                </h2>
+                <p class="text-muted">Submit your queries or issues and our team will respond as soon as possible.</p>
             </div>
-        {% empty %}
-            <p class="text-muted">You have not submitted any support requests yet.</p>
-        {% endfor %}
+
+            <!-- Support Form Card -->
+            <div class="card shadow-sm border-success mb-4">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">Submit a Support Request</h5>
+                </div>
+                <div class="card-body">
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+
+                    <form method="post" action="{% url 'member_support' %}">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="category" class="form-label fw-bold">Category</label>
+                            <select class="form-select" id="category" name="category" required>
+                                <option value="" disabled selected>Select category</option>
+                                <option value="personal_info">Updating Personal Information</option>
+                                <option value="financial_literacy">Financial Literacy Questions</option>
+                                <option value="complaints">Complaints / Feedback</option>
+                                <option value="service_issues">Service Issues</option>
+                                <option value="transaction_delay">Delays in Transactions</option>
+                                <option value="incorrect_deductions">Incorrect Deductions or Errors</option>
+                                <option value="staff_behavior">Staff Behavior</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="question" class="form-label fw-bold">Your Question / Issue</label>
+                            <textarea class="form-control" id="question" name="question" rows="4"
+                                placeholder="Type your question or issue here..." required></textarea>
+                        </div>
+
+                        <div class="d-flex justify-content-end">
+                            <button type="submit" class="btn btn-success">
+                                <i class="bi bi-send me-1"></i> Submit Request
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Your Previous Requests -->
+            <h5 class="mb-3 fw-bold">Your Submitted Requests</h5>
+            <div class="list-group">
+                {% for req in user_requests %}
+                    <div class="list-group-item shadow-sm mb-3 rounded border-start
+                        {% if not req.is_resolved %} border-warning bg-warning bg-opacity-10
+                        {% else %} border-success bg-success bg-opacity-10 {% endif %}">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h6 class="fw-bold">{{ req.get_category_display }}</h6>
+                                <p class="mb-1">{{ req.question }}</p>
+                                <small class="text-muted">{{ req.created_at|date:"M d, Y H:i" }}</small>
+                            </div>
+                            {% if req.is_resolved %}
+                                <span class="badge bg-success rounded-pill">Resolved</span>
+                            {% else %}
+                                <span class="badge bg-warning text-dark rounded-pill">Pending</span>
+                            {% endif %}
+                        </div>
+                        {% if req.is_resolved %}
+                            <div class="alert alert-success mt-2 mb-0 py-2">
+                                <strong>Response:</strong> {{ req.response }}
+                            </div>
+                        {% endif %}
+                    </div>
+                {% empty %}
+                    <p class="text-muted">You have not submitted any support requests yet.</p>
+                {% endfor %}
+            </div>
+
+        </div>
     </div>
 </div>
 
-<!-- Custom CSS -->
+<!-- Optional: Custom CSS -->
 <style>
-.unresolved-request {
-    background: #fff4e5;
-    border-left: 4px solid #ffc107;
-}
-.resolved-request {
-    background: #e8f9f0;
-    border-left: 4px solid #28a745;
-}
 .list-group-item:hover {
-    background: #f3fdf7;
+    background-color: #e6f4ea; /* light green hover */
 }
 </style>
 

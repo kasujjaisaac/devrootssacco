@@ -4,8 +4,12 @@ from .models import (
     Loan, LoanRepayment, LoanGuarantor
 )
 
-# -------------------- INLINE TRANSACTIONS --------------------
+# ============================================================
+# INLINE MODELS
+# ============================================================
+
 class SavingTransactionInline(admin.TabularInline):
+    """Inline for transactions inside SavingAccount admin"""
     model = SavingTransaction
     extra = 0
     readonly_fields = ('balance_after_transaction', 'transaction_date')
@@ -13,14 +17,29 @@ class SavingTransactionInline(admin.TabularInline):
     can_delete = False
     verbose_name_plural = "Transactions"
 
-# -------------------- INLINE SAVING ACCOUNT --------------------
 class SavingAccountInline(admin.StackedInline):
+    """Inline for SavingAccount inside Member admin"""
     model = SavingAccount
     readonly_fields = ('balance', 'account_created')
     extra = 0
-    # Django does NOT support inline inside inline → transactions handled separately
+    # Transactions are handled separately in SavingAccountAdmin
 
-# -------------------- MEMBER ADMIN --------------------
+class LoanGuarantorInline(admin.TabularInline):
+    """Inline for guarantors inside Loan admin"""
+    model = LoanGuarantor
+    extra = 3
+
+class LoanRepaymentInline(admin.TabularInline):
+    """Inline for repayments inside Loan admin"""
+    model = LoanRepayment
+    extra = 0
+    readonly_fields = ('date_paid',)
+
+
+# ============================================================
+# MEMBER ADMIN
+# ============================================================
+
 @admin.register(Member)
 class MemberAdmin(admin.ModelAdmin):
     list_display = ('member_id', 'first_name', 'last_name', 'gender', 'status', 'membership_fee_paid', 'created_at')
@@ -30,16 +49,16 @@ class MemberAdmin(admin.ModelAdmin):
 
     fieldsets = (
         ('Member Info', {'fields': ('member_id', 'status'), 'classes': ('collapse',)}),
-        ('Personal Info', {
-            'fields': ('first_name', 'last_name', 'gender', 'date_of_birth', 'marital_status', 
-                       'nationality', 'district_of_birth', 'tribe', 'profile_pic', 'national_id_copy'),
+        ('Personal Info', {'fields': (
+            'first_name', 'last_name', 'gender', 'date_of_birth', 'marital_status',
+            'nationality', 'district_of_birth', 'tribe', 'profile_pic', 'national_id_copy'),
             'classes': ('collapse',)
         }),
         ('Contact Info', {'fields': ('phone', 'email', 'address', 'preferred_contact'), 'classes': ('collapse',)}),
-        ('KYC & Employment Info', {
-            'fields': ('national_id', 'occupation', 'employment_status', 'employer_name', 
-                       'employer_department', 'employer_address', 'work_phone', 'income_range', 
-                       'source_of_income', 'tin_number'),
+        ('KYC & Employment Info', {'fields': (
+            'national_id', 'occupation', 'employment_status', 'employer_name',
+            'employer_department', 'employer_address', 'work_phone', 'income_range',
+            'source_of_income', 'tin_number'),
             'classes': ('collapse',)
         }),
         ('Next of Kin', {'fields': ('nok_name', 'nok_relationship', 'nok_phone', 'nok_email', 'nok_address'),
@@ -50,7 +69,11 @@ class MemberAdmin(admin.ModelAdmin):
 
     inlines = [SavingAccountInline]
 
-# -------------------- SAVING ACCOUNT ADMIN --------------------
+
+# ============================================================
+# SAVING ACCOUNT ADMIN
+# ============================================================
+
 @admin.register(SavingAccount)
 class SavingAccountAdmin(admin.ModelAdmin):
     list_display = ('member', 'balance', 'account_created')
@@ -58,7 +81,11 @@ class SavingAccountAdmin(admin.ModelAdmin):
     readonly_fields = ('balance', 'account_created')
     inlines = [SavingTransactionInline]
 
-# -------------------- SAVING TRANSACTION ADMIN --------------------
+
+# ============================================================
+# SAVING TRANSACTION ADMIN
+# ============================================================
+
 @admin.register(SavingTransaction)
 class SavingTransactionAdmin(admin.ModelAdmin):
     list_display = ('account', 'transaction_type', 'amount', 'balance_after_transaction', 'transaction_date')
@@ -66,25 +93,10 @@ class SavingTransactionAdmin(admin.ModelAdmin):
     search_fields = ('account__member__member_id', 'account__member__first_name', 'account__member__last_name')
     readonly_fields = ('balance_after_transaction', 'transaction_date')
 
-# -------------------- LOANS --------------------
-class LoanGuarantorInline(admin.TabularInline):
-    model = LoanGuarantor
-    extra = 3
 
-class LoanRepaymentInline(admin.TabularInline):
-    model = LoanRepayment
-    extra = 0
-    readonly_fields = ('date_paid',)
-
-    # Auto-update loan current_balance after adding repayment
-    def save_model(self, request, obj, form, change):
-        super().save_model(request, obj, form, change)
-        loan = obj.loan
-        loan.current_balance -= obj.amount_paid
-        if loan.current_balance <= 0:
-            loan.status = 'PAID'
-            loan.current_balance = 0
-        loan.save()
+# ============================================================
+# LOAN ADMIN
+# ============================================================
 
 @admin.register(Loan)
 class LoanAdmin(admin.ModelAdmin):
@@ -93,14 +105,22 @@ class LoanAdmin(admin.ModelAdmin):
     list_filter = ('status',)
     inlines = [LoanGuarantorInline, LoanRepaymentInline]
 
-# -------------------- LOAN REPAYMENTS --------------------
+
+# ============================================================
+# LOAN REPAYMENT ADMIN
+# ============================================================
+
 @admin.register(LoanRepayment)
 class LoanRepaymentAdmin(admin.ModelAdmin):
     list_display = ('loan', 'amount_paid', 'date_paid')
     search_fields = ('loan__member__first_name', 'loan__member__last_name')
     readonly_fields = ('date_paid',)
 
-# -------------------- LOAN GUARANTORS --------------------
+
+# ============================================================
+# LOAN GUARANTOR ADMIN
+# ============================================================
+
 @admin.register(LoanGuarantor)
 class LoanGuarantorAdmin(admin.ModelAdmin):
     list_display = ('loan', 'guarantor_name', 'guarantor_phone', 'guarantor_email')

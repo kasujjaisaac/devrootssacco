@@ -1,6 +1,7 @@
 from django import forms
 from .models import Member, Loan, LoanRepayment, SystemSetting
 from members.models import Role
+from .models import SupportRequest
 
 # ---------------------------------------------------
 # Admin Add Member Form  (with validations)
@@ -229,3 +230,16 @@ class RoleForm(forms.ModelForm):
 
     def clean_permissions(self):
         return self.cleaned_data.get("permissions", [])
+
+class SupportRequestForm(forms.ModelForm):
+    class Meta:
+        model = SupportRequest
+        fields = ['category', 'question']
+        widgets = {
+            'category': forms.Select(attrs={'class': 'form-select'}),
+            'question': forms.Textarea(attrs={'class': 'form-control', 'rows': 4, 'placeholder': 'Describe your issue here...'}),
+        }
+        labels = {
+            'category': 'Support Category',
+            'question': 'Your Issue / Question',
+        }

@@ -19,7 +19,9 @@ urlpatterns = [
     # ============================================
     path('login/', views.login_view, name='member_login'),    # Member login page
     path('logout/', views.logout_view, name='logout'),        # Member logout
-    path('logout/', views.logout_view, name='member_logout'),
+    
+
+    
 
     # ============================================
     # MEMBER DASHBOARD & PROFILE

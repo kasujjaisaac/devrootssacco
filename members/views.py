@@ -1,36 +1,26 @@
 # ==========================================================
 # IMPORTS
 # ==========================================================
-from datetime import date
+from datetime import date, datetime, timedelta
 import random
 import string
+
+
 from django.utils import timezone
-from django.db import transaction
-from .forms import LoanRepaymentForm
+from django.db import transaction, IntegrityError
+from django.db.models import Sum, Count, Q, F
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
-from django.contrib.auth.models import User, Group
+from django.contrib.auth.models import User, Group, Permission
 from django.contrib import messages
-from django.db.models import Sum
-from .forms import LoanForm, LoanGuarantorForm
-from django.db import IntegrityError
-from members.models import Notification
-from .forms import AdminAddMemberForm, MemberUpdateForm, LoanForm
-from .models import (Member, SavingAccount, SavingTransaction,Loan, LoanRepayment, LoanGuarantor,UserActivityLog, Notification)
-from django.db.models import Sum, Count, Q, F
-from datetime import datetime, timedelta
-from .models import AdminNotification
-from .models import SystemSetting
-from .forms import SystemSettingForm
-from members.models import Role, UserRole
-from members.forms import RoleForm
-from django.contrib.auth.models import Group, Permission, User
-from django.contrib.admin.views.decorators import staff_member_required
-from django.contrib.auth.models import Group, Permission
-from django.http import JsonResponse
-from django.contrib.auth.decorators import login_required, permission_required, user_passes_test
+from django.core.paginator import Paginator
 
+
+from .forms import (AdminAddMemberForm, MemberUpdateForm, LoanForm,LoanGuarantorForm, LoanRepaymentForm, SystemSettingForm, SupportRequestForm )
+from members.forms import RoleForm
+from .models import (Member,SavingAccount, SavingTransaction, Loan, LoanRepayment,LoanGuarantor, UserActivityLog, Notification, AdminNotification, SystemSetting, SupportRequest)
+from members.models import Role, UserRole
 # ==========================================================
 # HELPER FUNCTIONS
 # ==========================================================
@@ -39,24 +29,30 @@ def get_client_ip(request):
     return x_forwarded_for.split(',')[0] if x_forwarded_for else request.META.get('REMOTE_ADDR')
 
 
-def is_admin(user):
-    return user.groups.filter(name="Admin").exists() or user.is_staff
-
-
 def create_savings_account(member):
     """Ensure a SavingAccount exists for a member safely."""
-    return SavingAccount.objects.get_or_create(
-        member=member,
-        defaults={'account_number': f"SA-{member.id:06d}", 'balance': 0.0}
-    )
+    try:
+        saving_account, _ = SavingAccount.objects.get_or_create(
+            member=member,
+            defaults={'account_number': f"SA-{member.id:06d}", 'balance': 0.0}
+        )
+        return saving_account
+    except IntegrityError:
+        return SavingAccount.objects.get(member=member)
 
 
 def create_member_user(member):
     """Ensure a linked User exists for a member safely."""
     if member.user:
-        return member.user, None  # Already exists
+        return member.user, None
 
-    username = f"{member.first_name.lower()}.{member.last_name.lower()}.{member.member_id[-4:]}"
+    base_username = f"{member.first_name.lower()}.{member.last_name.lower()}.{member.member_id[-4:]}"
+    username = base_username
+    counter = 1
+    while User.objects.filter(username=username).exists():
+        username = f"{base_username}{counter}"
+        counter += 1
+
     tmp_pass = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
     user = User.objects.create_user(
         username=username,
@@ -72,19 +68,37 @@ def create_member_user(member):
     member.save()
     return user, tmp_pass
 
+def is_admin(user):
+    return user.groups.filter(name="Admin").exists() or user.is_staff
+
+
+def is_admin_user(user):
+    """Check if user is superuser or in Admin group."""
+    return user.is_superuser or user.groups.filter(name='Admin').exists()
+
+
 def role_required(group_name):
-    """
-    Decorator to restrict view access to users in a specific group.
-    """
+    """Decorator to restrict view access to users in a specific group."""
     def decorator(view_func):
         def _wrapped_view(request, *args, **kwargs):
             if request.user.is_authenticated and request.user.groups.filter(name=group_name).exists():
                 return view_func(request, *args, **kwargs)
-            # If user is not in the group, show message and redirect
             messages.error(request, "You do not have permission to access this page.")
-            return redirect("home")  # Replace 'home' with your actual homepage URL name
+            return redirect("home")
         return _wrapped_view
     return decorator
+
+def get_member_data(user):
+    """Fetch member, account, transactions for reuse."""
+    member = getattr(user, 'member', None)
+    if member:
+        create_savings_account(member)
+        create_member_user(member)
+        account = getattr(member, 'savingaccount', None)
+        transactions = account.transactions.order_by('-transaction_date') if account else []
+        return member, account, transactions
+    return None, None, []
+
 # ==========================================================
 # AUTHENTICATION VIEWS
 # ==========================================================
@@ -113,7 +127,7 @@ def logout_view(request):
     return redirect('member_login')
 
 # ==========================================================
-# ADMIN VIEWS
+# ADMIN DASHBOARD 
 # ==========================================================
 @login_required
 @user_passes_test(is_admin)
@@ -155,10 +169,8 @@ def admin_activity_logs(request):
 
 
 # ==========================================================
-# Admin: Add Member
+# ADMIN: MEMBERS MANAGEMENT (Add/Edit/List)
 # ==========================================================
-from django.contrib import messages
-
 @login_required
 @user_passes_test(is_admin)
 def add_member(request):
@@ -169,54 +181,21 @@ def add_member(request):
             member.status = 'ACTIVE'
             member.save()
 
-            # Create SavingAccount safely
-            saving_account, _ = SavingAccount.objects.get_or_create(
-                member=member,
-                defaults={'account_number': f"SA-{member.id:06d}", 'balance': 0.0}
-            )
+            # Ensure SavingAccount exists safely
+            create_savings_account(member)
 
-            # Create linked User safely
-            if not member.user:
-                base_username = f"{member.first_name.lower()}.{member.last_name.lower()}.{member.member_id[-4:]}"
-                username = base_username
-                counter = 1
-                while User.objects.filter(username=username).exists():
-                    username = f"{base_username}{counter}"
-                    counter += 1
+            # Ensure linked user exists safely
+            user, tmp_pass = create_member_user(member)
+            messages.success(request, f"Member {member.first_name} {member.last_name} added successfully!")
+            messages.info(request, f"Username: {user.username} | Temporary Password: {tmp_pass}")
 
-                tmp_pass = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
-                user = User.objects.create_user(
-                    username=username,
-                    email=member.email or "",
-                    password=tmp_pass,
-                    first_name=member.first_name,
-                    last_name=member.last_name,
-                )
-
-                member_group, _ = Group.objects.get_or_create(name="Member")
-                user.groups.add(member_group)
-                member.user = user
-                member.temp_password = True
-                member.save()
-
-                # Save temp password info in messages
-                messages.success(request, f"Member {member.first_name} {member.last_name} added successfully!")
-                messages.info(request, f"Username: {user.username} | Temporary Password: {tmp_pass}")
-
-            else:
-                messages.success(request, f"Member {member.first_name} {member.last_name} added successfully!")
-
-            # Redirect to the same page to avoid resubmission
             return redirect('add_member')
-
     else:
         form = AdminAddMemberForm()
 
     return render(request, 'admin/add_member.html', {'form': form})
 
-# ==========================================================
-# Admin: Edit Member
-# ==========================================================
+
 @login_required
 @user_passes_test(is_admin)
 def edit_member(request, member_id):
@@ -236,9 +215,6 @@ def edit_member(request, member_id):
     return render(request, 'admin/admin_edit_members.html', {'form': form, 'member': member})
 
 
-# ==========================================================
-# Admin: Members List
-# ==========================================================
 @login_required
 @user_passes_test(is_admin)
 def members_list(request):
@@ -247,9 +223,6 @@ def members_list(request):
     return render(request, 'admin/members_list.html', {'members': members, 'unread_notifications': unread_notifications})
 
 
-# ==========================================================
-# Admin: Member Profile
-# ==========================================================
 @login_required
 @user_passes_test(is_admin)
 def admin_member_profile(request, member_id):
@@ -260,7 +233,7 @@ def admin_member_profile(request, member_id):
 
 
 # ==========================================================
-# Admin: Loan Management
+# ADMIN: LOAN MANAGEMENT
 # ==========================================================
 @login_required
 @user_passes_test(is_admin)
@@ -270,7 +243,6 @@ def loans_list(request):
     # ------------------------------
     search_query = request.GET.get("search", "").strip()
     status_filter = request.GET.get("status", "").strip()
-
     loans = Loan.objects.all().order_by("-start_date")
 
     # Filter by search
@@ -288,7 +260,7 @@ def loans_list(request):
         loans = loans.filter(status=status_filter)
 
     # ------------------------------
-    # 2. Sorting Logic
+    # Sorting Logic
     # ------------------------------
     sort_option = request.GET.get("sort", "recent")
 
@@ -299,31 +271,22 @@ def loans_list(request):
     elif sort_option == "oldest":
         loans = loans.order_by("-principal_amount")
     else:
-        loans = loans.order_by("-start_date")  # default
+        loans = loans.order_by("-start_date")
 
     # ------------------------------
     # 3. Pagination
     # ------------------------------
-    from django.core.paginator import Paginator
-
-    paginator = Paginator(loans, 10)  # 10 loans per page
+    paginator = Paginator(loans, 10)  
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
 
-    # ------------------------------
-    # 4. UI Enhancements (Statistics)
-    # ------------------------------
-    total_loans = Loan.objects.count()
-    total_active = Loan.objects.filter(status="approved").count()
-    total_pending = Loan.objects.filter(status="pending").count()
-    total_amount = Loan.objects.aggregate(Sum("principal_amount"))["principal_amount__sum"] or 0
     context = {
         "loans": page_obj,
         "page_obj": page_obj,
-        "total_loans": total_loans,
-        "total_active": total_active,
-        "total_pending": total_pending,
-        "total_amount": total_amount,
+        "total_loans": loans.count(),
+        "total_active": loans.filter(status="approved").count(),
+        "total_pending": loans.filter(status="pending").count(),
+        "total_amount": loans.aggregate(Sum("principal_amount"))["principal_amount__sum"] or 0,
         "search_query": search_query,
         "status_filter": status_filter,
         "sort_option": sort_option,
@@ -332,50 +295,26 @@ def loans_list(request):
     return render(request, "admin/admin_loans_list.html", context)
 
 @login_required
-def add_loan(request):
-    if request.method == "POST":
-        form = LoanForm(request.POST)
-        if form.is_valid():
-            loan = form.save(commit=False)
-            loan.start_date = timezone.now().date()  # auto set today
-            loan.current_balance = loan.principal_amount  # starting balance
-            loan.save()
-
-            messages.success(request, "Loan successfully added!")
-            return redirect("admin_loans_list")
-    else:
-        form = LoanForm()
-
-    context = {
-        "form": form,
-    }
-    return render(request, "admin/admin_add_loan.html", context)
-
-@login_required
 @user_passes_test(is_admin)
 def add_loan(request):
     if request.method == "POST":
         loan_form = LoanForm(request.POST)
         guarantor_form = LoanGuarantorForm(request.POST)
-
         if loan_form.is_valid() and guarantor_form.is_valid():
             loan = loan_form.save(commit=False)
             loan.start_date = timezone.now().date()
             loan.current_balance = loan.principal_amount
             loan.save()
 
-            g1 = guarantor_form.cleaned_data['guarantor1']
-            g2 = guarantor_form.cleaned_data['guarantor2']
-            g3 = guarantor_form.cleaned_data['guarantor3']
+            g1, g2, g3 = guarantor_form.cleaned_data['guarantor1'], guarantor_form.cleaned_data['guarantor2'], guarantor_form.cleaned_data['guarantor3']
 
             if len({g1, g2, g3}) != 3:
                 messages.error(request, "Guarantors must be three different members.")
                 context = {'loan_form': loan_form, 'guarantor_form': guarantor_form}
                 return render(request, "admin/admin_add_loan.html", context)
 
-            LoanGuarantor.objects.create(loan=loan, guarantor=g1)
-            LoanGuarantor.objects.create(loan=loan, guarantor=g2)
-            LoanGuarantor.objects.create(loan=loan, guarantor=g3)
+            for g in [g1, g2, g3]:
+                LoanGuarantor.objects.create(loan=loan, guarantor=g)
 
             messages.success(request, "Loan created successfully with 3 guarantors.")
             return redirect("admin_loans_list")
@@ -383,11 +322,9 @@ def add_loan(request):
         loan_form = LoanForm()
         guarantor_form = LoanGuarantorForm()
 
-    context = {
-        'loan_form': loan_form,
-        'guarantor_form': guarantor_form,
-    }
+    context = {'loan_form': loan_form, 'guarantor_form': guarantor_form}
     return render(request, "admin/admin_add_loan.html", context)
+
 
 @login_required
 @user_passes_test(is_admin)
@@ -459,12 +396,7 @@ def savings_list(request):
     savings = SavingAccount.objects.select_related('member').all()
     total_saved = sum(s.balance for s in savings)
     active_accounts = savings.count()
-
-    context = {
-        'savings': savings,
-        'total_saved': total_saved,
-        'active_accounts': active_accounts,
-    }
+    context = {'savings': savings, 'total_saved': total_saved, 'active_accounts': active_accounts, }
     return render(request, 'admin/admin_savings_list.html', context)
 
 @login_required
@@ -472,11 +404,7 @@ def savings_list(request):
 def savings_profile(request, saving_id):
     saving = get_object_or_404(SavingAccount, pk=saving_id)
     transactions = saving.transactions.all().order_by('-transaction_date')
-    
-    context = {
-        'saving': saving,
-        'transactions': transactions
-    }
+    context = {'saving': saving, 'transactions': transactions }
     return render(request, 'admin/admin_savings_profile.html', context)
 
 
@@ -490,9 +418,7 @@ def add_saving(request):
         SavingAccount.objects.create(member=member)
         return redirect('admin/admin_savings_list')
     
-    context = {
-        'members': members_without_savings
-    }
+    context = {'members': members_without_savings }
     return render(request, 'admin/admin_add_saving.html', context)
 
 # ==========================================================
@@ -724,17 +650,26 @@ def member_transactions(request):
 
 @login_required 
 def member_support(request):
+    member = request.user.member
+
+    # Fetch the user's previous requests
+    user_requests = SupportRequest.objects.filter(member=member).order_by('-created_at')
+
     if request.method == 'POST':
         form = SupportRequestForm(request.POST)
         if form.is_valid():
             support_request = form.save(commit=False)
-            support_request.member = request.user.member 
+            support_request.member = member
             support_request.save()
             messages.success(request, "Your request has been submitted successfully!")
-            return redirect('member_dashboard')
+            return redirect('member_support')  
     else:
         form = SupportRequestForm()
-    return render(request, 'members/support_request.html', {'form': form})
+
+    return render(request, 'members/member_support.html', {
+        'form': form,
+        'user_requests': user_requests,
+    })
 
 # ==========================================================
 # ADMIN: Notifications
@@ -805,7 +740,6 @@ def members_management_home(request):
 def system_settings(request):
     # Get existing settings (create if none exists)
     settings, created = SystemSetting.objects.get_or_create(id=1)
-
     if request.method == "POST":
         form = SystemSettingForm(request.POST, request.FILES, instance=settings)
         if form.is_valid():
@@ -831,50 +765,36 @@ def system_settings(request):
 # ==========================================================
 # SYSTEM ROLES
 # ==========================================================
-# Helper: check if user is admin
-def is_admin_user(user):
-    return user.is_superuser or user.groups.filter(name='Admin').exists()
-
-# Main Roles Management View
 @login_required
 @user_passes_test(is_admin_user)
 def manage_roles(request):
     roles = Group.objects.all()
     permissions = Permission.objects.all()
 
-    # ----------------- Add Role -----------------
-    if request.method == "POST" and 'add_role' in request.POST:
-        role_name = request.POST.get("role_name", "").strip()
-        if role_name:
-            if Group.objects.filter(name=role_name).exists():
-                messages.error(request, "Role already exists.")
-            else:
+    if request.method == "POST":
+        if 'add_role' in request.POST:
+            role_name = request.POST.get("role_name", "").strip()
+            if role_name and not Group.objects.filter(name=role_name).exists():
                 Group.objects.create(name=role_name)
                 messages.success(request, f"Role '{role_name}' created successfully.")
-        return redirect("manage_roles")
+            return redirect("manage_roles")
 
-    # ----------------- Assign Permissions -----------------
-    if request.method == "POST" and 'assign_permissions' in request.POST:
-        role_id = request.POST.get("role_id")
-        selected_permissions = request.POST.getlist("permissions")
-        role = get_object_or_404(Group, id=role_id)
-        role.permissions.set(selected_permissions)
-        messages.success(request, f"Permissions updated for role: {role.name}")
-        return redirect("manage_roles")
+        if 'assign_permissions' in request.POST:
+            role_id = request.POST.get("role_id")
+            selected_permissions = request.POST.getlist("permissions")
+            role = get_object_or_404(Group, id=role_id)
+            role.permissions.set(selected_permissions)
+            messages.success(request, f"Permissions updated for role: {role.name}")
+            return redirect("manage_roles")
 
-    # ----------------- Delete Role -----------------
-    if request.method == "POST" and 'delete_role' in request.POST:
-        role_id = request.POST.get("delete_role_id")
-        role = get_object_or_404(Group, id=role_id)
-        role.delete()
-        messages.success(request, f"Role '{role.name}' deleted successfully.")
-        return redirect("manage_roles")
+        if 'delete_role' in request.POST:
+            role_id = request.POST.get("delete_role_id")
+            role = get_object_or_404(Group, id=role_id)
+            role.delete()
+            messages.success(request, f"Role '{role.name}' deleted successfully.")
+            return redirect("manage_roles")
 
-    context = {
-        "roles": roles,
-        "permissions": permissions,
-    }
-    return render(request, "admin/manage_roles.html", context)
+    return render(request, "admin/manage_roles.html", {"roles": roles, "permissions": permissions})
 
 @login_required
 @user_passes_test(is_admin_user)
