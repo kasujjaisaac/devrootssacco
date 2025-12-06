@@ -9,6 +9,7 @@ import string
 from decimal import Decimal
 from django.core.exceptions import ValidationError
 from django.utils import timezone
+from decimal import Decimal, ROUND_HALF_UP
 
 
 # ============================================================
@@ -286,24 +287,33 @@ class Loan(models.Model):
     member = models.ForeignKey(Member, on_delete=models.CASCADE, related_name="loans")
     principal_amount = models.DecimalField(max_digits=12, decimal_places=2)
     current_balance = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
-    interest_rate = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal("0.05"))
+    interest_rate = models.DecimalField(max_digits=5, decimal_places=4, blank=True, null=True)  # e.g., 0.05 for 5%
     start_date = models.DateField(auto_now_add=True)
     loan_term = models.IntegerField(default=12, help_text="Loan term in months")
     end_date = models.DateField(blank=True, null=True)
     status = models.CharField(max_length=20, choices=LOAN_STATUS_CHOICES, default="pending")
 
+    class Meta:
+        ordering = ["-start_date"]
+
     def save(self, *args, **kwargs):
         is_new = self.pk is None
+
+        # Set default interest rate from system settings if not provided
+        if is_new and (self.interest_rate is None):
+            system_setting = SystemSetting.objects.first()
+            self.interest_rate = Decimal(system_setting.default_loan_interest_rate / 100) if system_setting else Decimal("0.05")
 
         if is_new:
             self.current_balance = self.principal_amount
             if not self.end_date:
+                # Approximate month by 30 days, or use dateutil.relativedelta for precise months
                 self.end_date = self.start_date + timedelta(days=self.loan_term * 30)
 
         super().save(*args, **kwargs)
 
         if is_new:
-            # create admin notification
+            # Create admin notification
             AdminNotification.objects.create(
                 message=(
                     f"Loan request: {self.member.first_name} {self.member.last_name} "
@@ -314,6 +324,36 @@ class Loan(models.Model):
                 related_member=self.member,
             )
 
+    # ===========================
+    # Financial Methods
+    # ===========================
+
+    def calculate_monthly_interest(self):
+        """
+        Returns monthly interest as Decimal.
+        """
+        return (self.principal_amount * self.interest_rate).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+    def calculate_total_payable(self):
+        """
+        Returns total payable amount over the full loan term (principal + interest).
+        """
+        monthly_interest = self.calculate_monthly_interest()
+        total_interest = monthly_interest * self.loan_term
+        return (self.principal_amount + total_interest).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+    def remaining_balance(self, months_paid):
+        """
+        Returns remaining balance (principal + remaining interest) after given months paid.
+        """
+        if months_paid > self.loan_term:
+            months_paid = self.loan_term
+
+        monthly_interest = self.calculate_monthly_interest()
+        principal_paid = (self.principal_amount / self.loan_term) * months_paid
+        remaining_principal = self.principal_amount - principal_paid
+        remaining_interest = monthly_interest * (self.loan_term - months_paid)
+        return (remaining_principal + remaining_interest).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
 class LoanRepayment(models.Model):
     loan = models.ForeignKey(Loan, on_delete=models.CASCADE, related_name="repayments")
